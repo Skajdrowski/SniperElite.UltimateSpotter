@@ -6,12 +6,19 @@
 #include <map>
 #include <string>
 
+constexpr uintptr_t DisconnectIdleAddr = 0x60AD46;
+constexpr uintptr_t ClientHistoriesCapAddr = 0x6149CA;
+constexpr uintptr_t SlotsBroadcastAddr = 0x60D360;
+
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
+
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
 constexpr uintptr_t PlayerIPListenerAddr = 0x641D60;
 constexpr uintptr_t PlayerConstructorAddr = 0x56F390;
+
 constexpr uintptr_t InventoryAssignAddr = 0x519C90;
 constexpr uintptr_t InventoryCapAddr = 0x511420;
+
 constexpr uintptr_t KickPlayerAddr = 0x454610;
 constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
 constexpr uintptr_t loadingFlagAddr = 0x7A35A9;
@@ -28,6 +35,9 @@ struct Fetch {
 
 using DirectInputFn = uint32_t(__cdecl*)();
 static DirectInputFn directInput = nullptr;
+
+using SlotsBroadcastFn = void(__cdecl*)(void*);
+static SlotsBroadcastFn slotsBroadcast = nullptr;
 
 using PlayerConstructorFn = void* (__thiscall*)(void*, int, int, int);
 static PlayerConstructorFn playerConstructor = nullptr;

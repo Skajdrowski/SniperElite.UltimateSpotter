@@ -15,6 +15,20 @@
 
 bool isHost = false;
 
+static bool PatchMemory(uintptr_t address, const void* data, size_t size)
+{
+    DWORD oldProtect = 0;
+    if (!VirtualProtect(reinterpret_cast<void*>(address), size, PAGE_EXECUTE_READWRITE, &oldProtect))
+        return false;
+
+    CopyMemory(reinterpret_cast<void*>(address), data, size);
+    FlushInstructionCache(GetCurrentProcess(), reinterpret_cast<void*>(address), size);
+
+    DWORD unused = 0;
+    VirtualProtect(reinterpret_cast<void*>(address), size, oldProtect, &unused);
+    return true;
+}
+
 static uint32_t __cdecl DirectInput_Detour()
 {
     if (GUI::isVisible)
@@ -65,6 +79,15 @@ static int WSAAPI bind_Detour(SOCKET s, const sockaddr* name, int namelen)
     return rc2;
 }
 #endif
+
+static void __cdecl SlotsBroadcast_Detour(void* optionsBlob)
+{
+    if (optionsBlob)
+    {
+        *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(optionsBlob) + 0x50) = 0x20;
+    }
+    slotsBroadcast(optionsBlob);
+}
 
 static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, int uID, int a3, int a4)
 {
@@ -348,6 +371,14 @@ static void Init()
 
     if (MH_Initialize() != MH_OK)
         return;
+
+    const uint8_t idleDisconnect[] = {0xEB, 0x21};
+    PatchMemory(DisconnectIdleAddr, idleDisconnect, sizeof(idleDisconnect));
+
+    const uint8_t clientHistories[] = {0x83, 0xF8, 0x20};
+    PatchMemory(ClientHistoriesCapAddr, clientHistories, sizeof(clientHistories));
+
+
 #ifdef LAN
     if (MH_CreateHookApi(L"WSOCK32.dll", "bind", reinterpret_cast<void*>(&bind_Detour), reinterpret_cast<void**>(&WS2bind)) != MH_OK)
         return;
@@ -355,7 +386,12 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(DirectInputAddr),
         DirectInput_Detour,
         reinterpret_cast<void**>(&directInput)) != MH_OK)
-		return;
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(SlotsBroadcastAddr),
+        reinterpret_cast<void*>(&SlotsBroadcast_Detour),
+        reinterpret_cast<void**>(&slotsBroadcast)) != MH_OK)
+        return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(PlayerConstructorAddr),
         PlayerConstructor_Detour,
