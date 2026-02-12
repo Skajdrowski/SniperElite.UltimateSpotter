@@ -18,6 +18,8 @@ constexpr uintptr_t ClientHistoryIterNextConnectedAddr = 0x60C290;
 constexpr uintptr_t ClientHistoryFindFreeSlotAddr = 0x60C230;
 constexpr uintptr_t ClientHistoryAddOrUpdateAddr = 0x60C9F0;
 
+constexpr uintptr_t ClientHistoryClearByNumberAddr = 0x60C930;
+
 constexpr uintptr_t ClientHistoryStaticBaseAddr = 0x804B78;
 
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
@@ -55,7 +57,7 @@ static ClientHistoryInitFn clientHistoryInit = nullptr;
 using ClientHistoryCountConnectedFn = uint32_t(__thiscall*)(void*);
 static ClientHistoryCountConnectedFn clientHistoryCountConnected = nullptr;
 
-using ClientHistoryFindByuIDFn = uint8_t*(__thiscall*)(void*, int, char);
+using ClientHistoryFindByuIDFn = uint8_t*(__thiscall*)(void*, uint32_t, char);
 static ClientHistoryFindByuIDFn clientHistoryFindByNumber = nullptr;
 
 using ClientHistoryIterNextConnectedFn = uint8_t*(__thiscall*)(void*, int);
@@ -66,6 +68,9 @@ static ClientHistoryFindFreeSlotFn clientHistoryFindFreeSlot = nullptr;
 
 using ClientHistoryAddOrUpdateFn = uint8_t(__thiscall*)(void*, void*);
 static ClientHistoryAddOrUpdateFn clientHistoryAddOrUpdate = nullptr;
+
+using ClientHistoryClearByuIDFn = uint32_t(__thiscall*)(void*, uint32_t);
+static ClientHistoryClearByuIDFn clientHistoryClearByuID = nullptr;
 
 struct Fetch {
     uint8_t unknownShit[8];

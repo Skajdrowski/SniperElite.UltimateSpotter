@@ -17,11 +17,9 @@ bool isHost = false;
 
 static uint32_t __fastcall ClientHistoryInit_Detour(void* thisPtr, void* /*edx*/)
 {
-    ClientHistoryEntry* table = clients;
-
     for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
     {
-        ClientHistoryEntry& e = table[i];
+        ClientHistoryEntry& e = clients[i];
         memset(&e, 0, sizeof(e));
         e.playerId = 999;
         e.connected = 0;
@@ -68,7 +66,7 @@ static uint8_t* __fastcall ClientHistoryIterNextConnected_Detour(void* thisPtr, 
         if (cur >= base)
         {
             const uintptr_t diff = cur - base;
-            idx = static_cast<uint32_t>(diff / sizeof(ClientHistoryEntry)) + 1;
+            idx = diff / sizeof(ClientHistoryEntry) + 1;
         }
     }
 
@@ -123,6 +121,27 @@ static uint8_t __fastcall ClientHistoryAddOrUpdate_Detour(void* thisPtr, void* /
 
     memcpy(slot, incoming, sizeof(ClientHistoryEntry));
     return 1;
+}
+
+static uint32_t __fastcall ClientHistoryClearByuID_Detour(void* thisPtr, void* /*edx*/, uint32_t uID)
+{
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+    {
+        ClientHistoryEntry& e = clients[i];
+        if (e.playerId != uID)
+            continue;
+
+        if (!e.connected)
+            return i * sizeof(ClientHistoryEntry);
+
+        e.connected = 0;
+        memset(reinterpret_cast<uint8_t*>(&e) + 0x44, 0, 0x34);
+        e.value100 = 100;
+        e.state3 = 3;
+        return i * sizeof(ClientHistoryEntry);
+    }
+
+    return ClientHistoryMaxClients;
 }
 
 static bool PatchMemory(uintptr_t address, const void* data, size_t size)
@@ -524,6 +543,11 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryAddOrUpdateAddr),
         ClientHistoryAddOrUpdate_Detour,
         reinterpret_cast<void**>(&clientHistoryAddOrUpdate)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryClearByNumberAddr),
+        ClientHistoryClearByuID_Detour,
+        reinterpret_cast<void**>(&clientHistoryClearByuID)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(SlotsBroadcastAddr),
