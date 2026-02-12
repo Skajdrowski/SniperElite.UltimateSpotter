@@ -7,8 +7,18 @@
 #include <string>
 
 constexpr uintptr_t DisconnectIdleAddr = 0x60AD46;
-constexpr uintptr_t ClientHistoriesCapAddr = 0x6149CA;
 constexpr uintptr_t SlotsBroadcastAddr = 0x60D360;
+
+constexpr uintptr_t ClientHistoriesCapAddr = 0x6149CA;
+constexpr uintptr_t ClientHistoryInitAddr = 0x60BE00;
+constexpr uintptr_t ClientHistoryCountConnectedAddr = 0x60C0C0;
+constexpr uintptr_t ClientHistoryFindByNumberAddr = 0x60C120;
+constexpr uintptr_t ClientHistoryIterNextConnectedAddr = 0x60C290;
+
+constexpr uintptr_t ClientHistoryFindFreeSlotAddr = 0x60C230;
+constexpr uintptr_t ClientHistoryAddOrUpdateAddr = 0x60C9F0;
+
+constexpr uintptr_t ClientHistoryStaticBaseAddr = 0x804B78;
 
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
 
@@ -24,6 +34,38 @@ constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
 constexpr uintptr_t loadingFlagAddr = 0x7A35A9;
 
 extern bool isHost;
+
+struct ClientHistoryEntry
+{
+    uint8_t pad_0[0x3C];
+    uint32_t playerId;
+    uint8_t connected;
+    uint8_t pad_41[0xB];
+    uint32_t value100; //likely health
+    uint8_t pad_50[0x28];
+    uint32_t state3;
+};
+static ClientHistoryEntry* clients;
+
+constexpr uint32_t ClientHistoryMaxClients = 32;
+
+using ClientHistoryInitFn = uint32_t(__thiscall*)(void*);
+static ClientHistoryInitFn clientHistoryInit = nullptr;
+
+using ClientHistoryCountConnectedFn = uint32_t(__thiscall*)(void*);
+static ClientHistoryCountConnectedFn clientHistoryCountConnected = nullptr;
+
+using ClientHistoryFindByuIDFn = uint8_t*(__thiscall*)(void*, int, char);
+static ClientHistoryFindByuIDFn clientHistoryFindByNumber = nullptr;
+
+using ClientHistoryIterNextConnectedFn = uint8_t*(__thiscall*)(void*, int);
+static ClientHistoryIterNextConnectedFn clientHistoryIterNextConnected = nullptr;
+
+using ClientHistoryFindFreeSlotFn = uint8_t*(__thiscall*)(void*);
+static ClientHistoryFindFreeSlotFn clientHistoryFindFreeSlot = nullptr;
+
+using ClientHistoryAddOrUpdateFn = uint8_t(__thiscall*)(void*, void*);
+static ClientHistoryAddOrUpdateFn clientHistoryAddOrUpdate = nullptr;
 
 struct Fetch {
     uint8_t unknownShit[8];

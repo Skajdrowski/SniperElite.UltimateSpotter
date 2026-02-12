@@ -15,6 +15,116 @@
 
 bool isHost = false;
 
+static uint32_t __fastcall ClientHistoryInit_Detour(void* thisPtr, void* /*edx*/)
+{
+    ClientHistoryEntry* table = clients;
+
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+    {
+        ClientHistoryEntry& e = table[i];
+        memset(&e, 0, sizeof(e));
+        e.playerId = 999;
+        e.connected = 0;
+        e.value100 = 100;
+        e.state3 = 3;
+    }
+    return 0;
+}
+
+static uint32_t __fastcall ClientHistoryCountConnected_Detour(void* thisPtr, void* /*edx*/)
+{
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+        count += clients[i].connected != 0;
+    return count;
+}
+
+static uint8_t* __fastcall ClientHistoryFindByuID_Detour(void* thisPtr, void* /*edx*/, uint32_t uID, uint8_t requireConnected)
+{
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+    {
+        ClientHistoryEntry* entry = &clients[i];
+        if (entry->playerId != uID)
+            continue;
+
+        if (!entry->connected && requireConnected)
+            return nullptr;
+
+        return reinterpret_cast<uint8_t*>(entry);
+    }
+
+    return nullptr;
+}
+
+static uint8_t* __fastcall ClientHistoryIterNextConnected_Detour(void* thisPtr, void* /*edx*/, uint32_t cursorPtr)
+{
+    uint8_t** cursor = reinterpret_cast<uint8_t**>(cursorPtr);
+
+    uint32_t idx = 0;
+    if (*cursor)
+    {
+        const uintptr_t base = reinterpret_cast<uintptr_t>(clients);
+        const uintptr_t cur = reinterpret_cast<uintptr_t>(*cursor);
+        if (cur >= base)
+        {
+            const uintptr_t diff = cur - base;
+            idx = static_cast<uint32_t>(diff / sizeof(ClientHistoryEntry)) + 1;
+        }
+    }
+
+    *cursor = nullptr;
+    for (; idx < ClientHistoryMaxClients; ++idx)
+    {
+        ClientHistoryEntry* entry = &clients[idx];
+        if (!entry->connected)
+            continue;
+        if (entry->playerId == 999)
+            continue;
+
+        *cursor = reinterpret_cast<uint8_t*>(entry);
+        return *cursor;
+    }
+
+    return nullptr;
+}
+
+static uint8_t* __fastcall ClientHistoryFindFreeSlot_Detour(void* thisPtr, void* /*edx*/)
+{
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+    {
+        ClientHistoryEntry& e = clients[i];
+        if (e.playerId == 999 || e.connected == 0)
+            return reinterpret_cast<uint8_t*>(&e);
+    }
+
+    return nullptr;
+}
+
+static uint8_t __fastcall ClientHistoryAddOrUpdate_Detour(void* thisPtr, void* /*edx*/, void* entryPtr)
+{
+    const ClientHistoryEntry* incoming = reinterpret_cast<const ClientHistoryEntry*>(entryPtr);
+    const uint32_t key = incoming->playerId;
+
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+    {
+        ClientHistoryEntry& existing = clients[i];
+        if (existing.playerId == key)
+        {
+            if (existing.connected)
+                return 0;
+            memcpy(&existing, incoming, sizeof(ClientHistoryEntry));
+            return 1;
+        }
+    }
+
+    uint8_t* slot = ClientHistoryFindFreeSlot_Detour(thisPtr, nullptr);
+    if (!slot)
+        return 0;
+
+    memcpy(slot, incoming, sizeof(ClientHistoryEntry));
+    return 1;
+}
+
 static bool PatchMemory(uintptr_t address, const void* data, size_t size)
 {
     DWORD oldProtect = 0;
@@ -362,22 +472,20 @@ static void Thread()
 
 static void Init()
 {
-    /*
-    AllocConsole();
-    freopen("CONIN$", "r", stdin);
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-    */
-
     if (MH_Initialize() != MH_OK)
         return;
+
+    clients = reinterpret_cast<ClientHistoryEntry*>(VirtualAlloc(
+        nullptr,
+        ClientHistoryMaxClients * sizeof(ClientHistoryEntry),
+        MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE));
 
     const uint8_t idleDisconnect[] = {0xEB, 0x21};
     PatchMemory(DisconnectIdleAddr, idleDisconnect, sizeof(idleDisconnect));
 
     const uint8_t clientHistories[] = {0x83, 0xF8, 0x20};
     PatchMemory(ClientHistoriesCapAddr, clientHistories, sizeof(clientHistories));
-
 
 #ifdef LAN
     if (MH_CreateHookApi(L"WSOCK32.dll", "bind", reinterpret_cast<void*>(&bind_Detour), reinterpret_cast<void**>(&WS2bind)) != MH_OK)
@@ -386,6 +494,36 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(DirectInputAddr),
         DirectInput_Detour,
         reinterpret_cast<void**>(&directInput)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryInitAddr),
+        ClientHistoryInit_Detour,
+        reinterpret_cast<void**>(&clientHistoryInit)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryCountConnectedAddr),
+        ClientHistoryCountConnected_Detour,
+        reinterpret_cast<void**>(&clientHistoryCountConnected)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryFindByNumberAddr),
+        ClientHistoryFindByuID_Detour,
+        reinterpret_cast<void**>(&clientHistoryFindByNumber)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryIterNextConnectedAddr),
+        ClientHistoryIterNextConnected_Detour,
+        reinterpret_cast<void**>(&clientHistoryIterNextConnected)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryFindFreeSlotAddr),
+        ClientHistoryFindFreeSlot_Detour,
+        reinterpret_cast<void**>(&clientHistoryFindFreeSlot)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryAddOrUpdateAddr),
+        ClientHistoryAddOrUpdate_Detour,
+        reinterpret_cast<void**>(&clientHistoryAddOrUpdate)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(SlotsBroadcastAddr),
