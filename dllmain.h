@@ -22,8 +22,6 @@ constexpr uintptr_t ClientHistoryClearByNumberAddr = 0x60C930;
 
 constexpr uintptr_t ClientHistoryIndexByNumberAddr = 0x60C190;
 
-constexpr uintptr_t ClientHistoryStaticBaseAddr = 0x804B78;
-
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
 
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
@@ -45,9 +43,13 @@ struct ClientHistoryEntry
     uint8_t pad_0[0x3C];
     uint32_t playerId;
     uint8_t connected;
-    uint8_t pad_41[0xB];
-    uint32_t value100; //likely health
-    uint8_t pad_50[0x28];
+    uint8_t pad_41[0x3];
+    float lastSeenTime;
+    uint32_t unk48;
+    uint32_t value100;
+    uint32_t unk50;
+    uint8_t pad_54[0x20];
+    uint32_t unk74;
     uint32_t state3;
 };
 static ClientHistoryEntry* clients;
@@ -91,6 +93,12 @@ static DirectInputFn directInput = nullptr;
 
 using SlotsBroadcastFn = void(__cdecl*)(void*);
 static SlotsBroadcastFn slotsBroadcast = nullptr;
+
+struct SlotsBroadcastOptions
+{
+    uint8_t pad_00[0x50];
+    uint32_t maxPlayers;
+};
 
 using PlayerConstructorFn = void* (__thiscall*)(void*, uint32_t, int, int);
 static PlayerConstructorFn playerConstructor = nullptr;

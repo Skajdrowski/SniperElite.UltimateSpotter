@@ -23,7 +23,11 @@ static uint32_t __fastcall ClientHistoryInit_Detour(void* thisPtr, void* /*edx*/
         memset(&e, 0, sizeof(e));
         e.playerId = 999;
         e.connected = 0;
+        e.lastSeenTime = 0.0f;
+        e.unk48 = 2;
         e.value100 = 100;
+        e.unk50 = 4;
+        e.unk74 = 1;
         e.state3 = 3;
     }
     return 0;
@@ -135,8 +139,12 @@ static uint32_t __fastcall ClientHistoryClearByuID_Detour(void* thisPtr, void* /
             return i * sizeof(ClientHistoryEntry);
 
         e.connected = 0;
-        memset(reinterpret_cast<uint8_t*>(&e) + 0x44, 0, 0x34);
+        memset(reinterpret_cast<uint8_t*>(&e) + 0x44, 0, sizeof(ClientHistoryEntry) - 0x44);
+        e.lastSeenTime = 0.0f;
+        e.unk48 = 2;
         e.value100 = 100;
+        e.unk50 = 4;
+        e.unk74 = 1;
         e.state3 = 3;
         return i * sizeof(ClientHistoryEntry);
     }
@@ -238,9 +246,7 @@ static int WSAAPI bind_Detour(SOCKET s, const sockaddr* name, int namelen)
 static void __cdecl SlotsBroadcast_Detour(void* optionsBlob)
 {
     if (optionsBlob)
-    {
-        *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(optionsBlob) + 0x50) = 0x20;
-    }
+        reinterpret_cast<SlotsBroadcastOptions*>(optionsBlob)->maxPlayers = 0x20;
     slotsBroadcast(optionsBlob);
 }
 
