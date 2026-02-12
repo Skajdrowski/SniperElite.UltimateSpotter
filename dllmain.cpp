@@ -144,6 +144,24 @@ static uint32_t __fastcall ClientHistoryClearByuID_Detour(void* thisPtr, void* /
     return ClientHistoryMaxClients;
 }
 
+static int32_t __fastcall ClientHistoryIndexByuID_Detour(void* thisPtr, void* /*edx*/, uint32_t uID, uint8_t requireConnected)
+{
+    for (uint32_t i = 0; i < ClientHistoryMaxClients; ++i)
+    {
+        const ClientHistoryEntry& e = clients[i];
+        if (e.playerId != uID)
+            continue;
+
+        if (e.playerId == 999)
+            return -1;
+        if (!e.connected && requireConnected)
+            return -1;
+
+        return i;
+    }
+    return -1;
+}
+
 static bool PatchMemory(uintptr_t address, const void* data, size_t size)
 {
     DWORD oldProtect = 0;
@@ -548,6 +566,11 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryClearByNumberAddr),
         ClientHistoryClearByuID_Detour,
         reinterpret_cast<void**>(&clientHistoryClearByuID)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryIndexByNumberAddr),
+        ClientHistoryIndexByuID_Detour,
+        reinterpret_cast<void**>(&clientHistoryIndexByuID)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(SlotsBroadcastAddr),

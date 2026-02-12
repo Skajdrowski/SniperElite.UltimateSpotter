@@ -20,6 +20,8 @@ constexpr uintptr_t ClientHistoryAddOrUpdateAddr = 0x60C9F0;
 
 constexpr uintptr_t ClientHistoryClearByNumberAddr = 0x60C930;
 
+constexpr uintptr_t ClientHistoryIndexByNumberAddr = 0x60C190;
+
 constexpr uintptr_t ClientHistoryStaticBaseAddr = 0x804B78;
 
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
@@ -71,6 +73,9 @@ static ClientHistoryAddOrUpdateFn clientHistoryAddOrUpdate = nullptr;
 
 using ClientHistoryClearByuIDFn = uint32_t(__thiscall*)(void*, uint32_t);
 static ClientHistoryClearByuIDFn clientHistoryClearByuID = nullptr;
+
+using ClientHistoryIndexByuIDFn = int32_t(__thiscall*)(void*, uint32_t, uint8_t);
+static ClientHistoryIndexByuIDFn clientHistoryIndexByuID = nullptr;
 
 struct Fetch {
     uint8_t unknownShit[8];
