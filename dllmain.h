@@ -91,7 +91,7 @@ static DirectInputFn directInput = nullptr;
 using SlotsBroadcastFn = void(__cdecl*)(void*);
 static SlotsBroadcastFn slotsBroadcast = nullptr;
 
-using PlayerConstructorFn = void* (__thiscall*)(void*, int, int, int);
+using PlayerConstructorFn = void* (__thiscall*)(void*, uint32_t, int, int);
 static PlayerConstructorFn playerConstructor = nullptr;
 extern bool isPopulated;
 extern wchar_t greetBuffer[36];

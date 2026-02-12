@@ -236,7 +236,7 @@ static void __cdecl SlotsBroadcast_Detour(void* optionsBlob)
     slotsBroadcast(optionsBlob);
 }
 
-static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, int uID, int a3, int a4)
+static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, uint32_t uID, int a3, int a4)
 {
     void* playerObject = playerConstructor(thisPtr, uID, a3, a4);
     void* ThisPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
