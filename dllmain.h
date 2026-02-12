@@ -29,6 +29,7 @@ constexpr uintptr_t DirectInputAddr = 0x40AC10;
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
 constexpr uintptr_t PlayerIPListenerAddr = 0x641D60;
 constexpr uintptr_t PlayerConstructorAddr = 0x56F390;
+constexpr uintptr_t ScoreIndexByuIDAddr = 0x613E00;
 
 constexpr uintptr_t InventoryAssignAddr = 0x519C90;
 constexpr uintptr_t InventoryCapAddr = 0x511420;
@@ -107,6 +108,10 @@ extern bool isIpAddressBanned(const std::string& ipAddress);
 
 using PlayerFetchFn = uint32_t(__cdecl*)(Fetch*);
 static PlayerFetchFn playerFetch = nullptr;
+
+using ScoreIndexByuIDFn = int(__cdecl*)(int uID, char a2);
+static ScoreIndexByuIDFn scoreIndexByuID = nullptr;
+
 struct PlayerFetchEntry
 {
     uint32_t uid = 0;

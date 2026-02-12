@@ -184,6 +184,14 @@ static uint32_t __cdecl DirectInput_Detour()
     return directInput();
 }
 
+static int __cdecl ScoreIndexByuID_Detour(int uID, char a2)
+{
+    const int idx = scoreIndexByuID(uID, a2);
+    if (idx >= 8)
+        return -1;
+    return idx;
+}
+
 #ifdef LAN
 using BindFn = int (WSAAPI*)(SOCKET, const sockaddr*, int);
 static BindFn WS2bind = nullptr;
@@ -531,6 +539,11 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(DirectInputAddr),
         DirectInput_Detour,
         reinterpret_cast<void**>(&directInput)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(ScoreIndexByuIDAddr),
+        ScoreIndexByuID_Detour,
+        reinterpret_cast<void**>(&scoreIndexByuID)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(ClientHistoryInitAddr),
