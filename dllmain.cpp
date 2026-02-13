@@ -7,7 +7,7 @@
 #include <unordered_set>
 
 #pragma comment(lib, "ws2_32.lib")
-#define LAN
+//#define LAN
 
 #ifndef _countof
 #define _countof(arr) (sizeof(arr) / sizeof((arr)[0]))
