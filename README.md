@@ -1,7 +1,7 @@
 # Ultimate Spotter for Sniper Elite
 (Originally knowns as "spotter") An ASI script to moderate online lobbies in Sniper Elite.
 
-Currently this one offers additional feature of managing player inventories
+Currently this one offers additional feature of managing player inventories (Some stuff might not work as intended. Everything is experimental)
 
 ## How to install
 Extract .7z content into game files (eg. C:\Program Files\Steam\steamapps\common\SniperElite) and run the game.
