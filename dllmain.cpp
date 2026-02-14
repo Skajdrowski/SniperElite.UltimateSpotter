@@ -289,6 +289,121 @@ static void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
     return;
 }
 
+static std::vector<Coords> customSpawns{};
+static std::atomic<uint32_t> customSpawnIndex{};
+static std::vector<void*> injectedSpawnPoints;
+static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2, int** a3)
+{
+    if (strcmp(curLevel, "01b.pc") == 0)
+    {
+        customSpawns = {
+            { 135.0737152f, 3.5f, -165.276886f, teamRussia },
+            { 257.8721008f, 9.7f, -137.5167542f, teamGermany },
+        };
+    }
+
+    static bool isInHook = false;
+    if (isInHook)
+        return o591A40(self, a2, a3);
+
+    isInHook = true;
+
+    void* sp = o591A40(self, a2, a3);
+    if (!sp)
+    {
+        isInHook = false;
+        return sp;
+    }
+
+    const bool hasAnyCustom = !customSpawns.empty();
+    if (hasAnyCustom)
+    {
+        uint32_t origuID = *(uint32_t*)((char*)sp + spawnPointOffset);
+        uint8_t gameMode = *(const uint8_t*)0x7E33B0;
+
+        static std::atomic<uint32_t> injecteduID{ 0x06900000u };
+
+        static std::atomic<bool> s_seeded{ false };
+        bool expected = false;
+        if (s_seeded.compare_exchange_strong(expected, true, std::memory_order_relaxed))
+        {
+            uint32_t seed = 0x6900000u | (origuID & 0xFFFFFu);
+            if (seed == 0x6900000u)
+                seed = 0x6900001u;
+
+            injecteduID.store(seed, std::memory_order_relaxed);
+        }
+
+        auto emitSpawn = [&](const Coords& entry)
+            {
+                void* newSpawn = operatorNew(spawnPointSize);
+                if (!newSpawn)
+                    return;
+
+                memcpy(newSpawn, sp, spawnPointSize);
+
+                uint32_t newuID =
+                    injecteduID.fetch_add(1, std::memory_order_relaxed) + 1;
+
+                *(uint32_t*)((char*)newSpawn + spawnPointOffset) = newuID;
+                *(float*)((char*)newSpawn + spawnPosX) = entry.x;
+                *(float*)((char*)newSpawn + spawnPosY) = entry.y;
+                *(float*)((char*)newSpawn + spawnPosZ) = entry.z;
+
+                uint32_t teamMask = (gameMode == 0x8) ? 0x1 : entry.teamMask;
+                *(uint32_t*)((char*)newSpawn + spawnTeamOffset) = teamMask;
+
+                printf("[SPAWN] new uid=0x%08X teamMask=0x%X pos=(%.3f, %.3f, %.3f) clone=0x%p template=0x%p\n",
+                    newuID, teamMask,
+                    entry.x, entry.y, entry.z,
+                    newSpawn, sp);
+
+                spawnPointInit(spawnListTable, newSpawn);
+                injectedSpawnPoints.push_back(newSpawn);
+            };
+
+        uint32_t idx =
+            customSpawnIndex.fetch_add(1, std::memory_order_relaxed);
+
+        if (idx < customSpawns.size())
+            emitSpawn(customSpawns[idx]);
+    }
+
+    isInHook = false;
+    return sp;
+}
+
+static void* __fastcall SpawnPointErase_Detour(void* self, void* /*edx*/, uint8_t flags)
+{
+    static bool s_inCleanup = false;
+    if (s_inCleanup)
+        return spawnPointErase(self, flags);
+
+    if (!injectedSpawnPoints.empty())
+    {
+        s_inCleanup = true;
+        std::vector<void*> toDelete;
+        toDelete.swap(injectedSpawnPoints);
+
+        for (void* sp : toDelete)
+        {
+            if (!sp)
+                continue;
+
+            if (sp == self)
+                continue;
+
+            spawnPointErase(sp, 1);
+        }
+
+        customSpawnIndex.store(0, std::memory_order_relaxed);
+        customSpawns.clear();
+        s_inCleanup = false;
+    }
+
+    return spawnPointErase(self, flags);
+}
+
 /*
 static void PrintInventory()
 {
@@ -325,6 +440,7 @@ static void Thread()
         }
         */
         isHost = *((const uint8_t*)0x7814F5);
+        curLevel = (const char*)0x8185A0;
         if (*((const char*)0x818AB0) == *"frontsc2.dds" && isPopulated)
         {
             isPopulated = false;
@@ -339,12 +455,12 @@ static void Thread()
 
 static void Init()
 {
-    /*
+    
     AllocConsole();
     freopen("CONIN$", "r", stdin);
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
-    */
+    
 
     if (MH_Initialize() != MH_OK)
         return;
@@ -387,6 +503,16 @@ static void Init()
         reinterpret_cast<void**>(&autoBalanceUpdate)) != MH_OK)
         return;
 
+    if (MH_CreateHook(reinterpret_cast<void*>(spawnPointInitAddr),
+        SpawnPointInit_Detour,
+        reinterpret_cast<void**>(&o591A40)) != MH_OK)
+		return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(spawnPointEraseAddr),
+        SpawnPointErase_Detour,
+        reinterpret_cast<void**>(&spawnPointErase)) != MH_OK)
+		return;
+    
 	MH_EnableHook(MH_ALL_HOOKS);
     InstallDirect3DHook();
     CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Thread), nullptr, 0, nullptr);

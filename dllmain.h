@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 
+constexpr uintptr_t OperatorNewAddr = 0x6A6322;
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
 constexpr uintptr_t PlayerIPListenerAddr = 0x641D60;
@@ -15,8 +16,11 @@ constexpr uintptr_t InventoryCapAddr = 0x511420;
 constexpr uintptr_t KickPlayerAddr = 0x454610;
 constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
 constexpr uintptr_t loadingFlagAddr = 0x7A35A9;
+constexpr uintptr_t spawnPointInitAddr = 0x591A40;
+constexpr uintptr_t spawnPointEraseAddr = 0x591D20;
 
 extern bool isHost;
+static const char* curLevel;
 
 struct Fetch {
     uint8_t unknownShit[8];
@@ -68,3 +72,33 @@ static InventoryCapFn inventoryCap = nullptr;
 using AutoBalanceUpdateFn = void(__thiscall*)(void*);
 static AutoBalanceUpdateFn autoBalanceUpdate = nullptr;
 static bool balanceToggle = false;
+
+struct Coords
+{
+    float x;
+    float y;
+    float z;
+    uint32_t teamMask;
+};
+
+constexpr size_t spawnPointSize = 0x3C;
+constexpr size_t spawnPointOffset = 0x4;
+constexpr size_t spawnTeamOffset = 0x30;
+constexpr uint32_t teamGermany = 0x2;
+constexpr uint32_t teamRussia = 0x4;
+constexpr size_t spawnPosX = 0x18;
+constexpr size_t spawnPosY = 0x14;
+constexpr size_t spawnPosZ = 0x10;
+
+using t_sub_591A40_Orig = void* (__thiscall*)(void* self, int a2, int** a3);
+static t_sub_591A40_Orig o591A40 = nullptr;
+using OperatorNewFn = void* (__cdecl*)(size_t);
+static OperatorNewFn operatorNew = reinterpret_cast<OperatorNewFn>(OperatorNewAddr);
+
+using SpawnPointInitFn = void* (__thiscall*)(void*, void*); // returns node*
+static SpawnPointInitFn spawnPointInit = reinterpret_cast<SpawnPointInitFn>(0x591C70);
+
+static void* spawnListTable = reinterpret_cast<void*>(0x75A5C8);
+
+using SpawnPointEraseFn = void* (__thiscall*)(void*, uint8_t);
+static SpawnPointEraseFn spawnPointErase = nullptr;
