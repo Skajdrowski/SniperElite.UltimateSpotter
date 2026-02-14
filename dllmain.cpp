@@ -251,6 +251,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             {
                 quantity = 50;
                 inventoryAssign(thisPtr, 0x9, 50, -1, 0);
+				inventoryAssign(thisPtr, 0xD, 1, -1, 0);
             }
 
             if (weaponId == 0xF)
