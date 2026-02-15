@@ -17,6 +17,7 @@ constexpr uintptr_t KickPlayerAddr = 0x454610;
 constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
 constexpr uintptr_t loadingFlagAddr = 0x7A35A9;
 constexpr uintptr_t spawnPointInitAddr = 0x591A40;
+constexpr uintptr_t spawnPointInjectAddr = 0x591C70;
 constexpr uintptr_t spawnPointEraseAddr = 0x591D20;
 
 extern bool isHost;
@@ -90,13 +91,14 @@ constexpr size_t spawnPosX = 0x18;
 constexpr size_t spawnPosY = 0x14;
 constexpr size_t spawnPosZ = 0x10;
 
-using t_sub_591A40_Orig = void* (__thiscall*)(void* self, int a2, int** a3);
-static t_sub_591A40_Orig o591A40 = nullptr;
 using OperatorNewFn = void* (__cdecl*)(size_t);
 static OperatorNewFn operatorNew = reinterpret_cast<OperatorNewFn>(OperatorNewAddr);
 
-using SpawnPointInitFn = void* (__thiscall*)(void*, void*); // returns node*
-static SpawnPointInitFn spawnPointInit = reinterpret_cast<SpawnPointInitFn>(0x591C70);
+using SpawnPointInitFn = void* (__thiscall*)(void*, int, int**);
+static SpawnPointInitFn spawnPointInit = nullptr;
+
+using SpawnPointInjectFn = void* (__thiscall*)(void*, void*);
+static SpawnPointInjectFn spawnPointInject = reinterpret_cast<SpawnPointInjectFn>(spawnPointInjectAddr);
 
 static void* spawnListTable = reinterpret_cast<void*>(0x75A5C8);
 

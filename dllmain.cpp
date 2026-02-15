@@ -298,29 +298,35 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
     if (strcmp(curLevel, "01b.pc") == 0)
     {
         customSpawns = {
-            { 135.0737152f, 3.5f, -165.276886f, teamRussia },
-            { 257.8721008f, 9.7f, -137.5167542f, teamGermany },
+            { -54.5f, -15.5f, -70.6f, teamRussia },
+            { 257.9f, 9.7f, -137.52f, teamGermany }
         };
     }
+    if (strcmp(curLevel, "04a.pc") == 0)
+    {
+        customSpawns = {
+            { -55.64f, -15.5f, -71.16f, teamRussia },
+            { 76.52f, -15.2f, -80.22f, teamGermany }
+        };
+	}
 
     static bool isInHook = false;
     if (isInHook)
-        return o591A40(self, a2, a3);
+        return spawnPointInit(self, a2, a3);
 
     isInHook = true;
 
-    void* sp = o591A40(self, a2, a3);
+    void* sp = spawnPointInit(self, a2, a3);
     if (!sp)
     {
         isInHook = false;
         return sp;
     }
 
-    const bool hasAnyCustom = !customSpawns.empty();
-    if (hasAnyCustom)
+    if (!customSpawns.empty())
     {
         uint32_t origuID = *(uint32_t*)((char*)sp + spawnPointOffset);
-        uint8_t gameMode = *(const uint8_t*)0x7E33B0;
+        const uint32_t gameMode = *(const uint32_t*)0x7E33B0;
 
         static std::atomic<uint32_t> injecteduID{ 0x06900000u };
 
@@ -354,12 +360,14 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
                 uint32_t teamMask = (gameMode == 0x8) ? 0x1 : entry.teamMask;
                 *(uint32_t*)((char*)newSpawn + spawnTeamOffset) = teamMask;
 
+                *(uint32_t*)((char*)newSpawn + 0x34) = gameMode;
+                /*
                 printf("[SPAWN] new uid=0x%08X teamMask=0x%X pos=(%.3f, %.3f, %.3f) clone=0x%p template=0x%p\n",
                     newuID, teamMask,
                     entry.x, entry.y, entry.z,
                     newSpawn, sp);
-
-                spawnPointInit(spawnListTable, newSpawn);
+                */
+                spawnPointInject(spawnListTable, newSpawn);
                 injectedSpawnPoints.push_back(newSpawn);
             };
 
@@ -456,12 +464,12 @@ static void Thread()
 
 static void Init()
 {
-    
+    /*
     AllocConsole();
     freopen("CONIN$", "r", stdin);
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
-    
+    */
 
     if (MH_Initialize() != MH_OK)
         return;
@@ -506,7 +514,7 @@ static void Init()
 
     if (MH_CreateHook(reinterpret_cast<void*>(spawnPointInitAddr),
         SpawnPointInit_Detour,
-        reinterpret_cast<void**>(&o591A40)) != MH_OK)
+        reinterpret_cast<void**>(&spawnPointInit)) != MH_OK)
 		return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(spawnPointEraseAddr),
