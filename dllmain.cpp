@@ -298,15 +298,15 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
     if (strcmp(curLevel, "01b.pc") == 0)
     {
         customSpawns = {
-            { -54.5f, -15.5f, -70.6f, teamRussia },
-            { 257.9f, 9.7f, -137.52f, teamGermany }
+            { 107.83f, -6.45f, -89.65f, russia, crouch },
+            { 257.8721008f, 9.7f, -137.5167542f, germany, crouch }
         };
     }
     if (strcmp(curLevel, "04a.pc") == 0)
     {
         customSpawns = {
-            { -55.64f, -15.5f, -71.16f, teamRussia },
-            { 76.52f, -15.2f, -80.22f, teamGermany }
+            { -55.64f, -15.5f, -71.16f, russia, prone },
+            { 76.52f, -15.2f, -80.22f, germany, prone }
         };
     }
 
@@ -326,8 +326,6 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
     if (!customSpawns.empty())
     {
         uint32_t origuID = *(uint32_t*)((char*)sp + spawnPointOffset);
-        const uint32_t gameMode = *(const uint32_t*)0x7E33B0;
-
         static std::atomic<uint32_t> injecteduID{ 0x06900000u };
 
         static std::atomic<bool> s_seeded{ false };
@@ -341,7 +339,7 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
             injecteduID.store(seed, std::memory_order_relaxed);
         }
 
-        auto emitSpawn = [&](const Coords& entry)
+        auto emitSpawn = [&](const Coords entry, uint32_t modeMask, uint32_t teamMask)
             {
                 void* newSpawn = operatorNew(spawnPointSize);
                 if (!newSpawn)
@@ -353,14 +351,13 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
                     injecteduID.fetch_add(1, std::memory_order_relaxed) + 1;
 
                 *(uint32_t*)((char*)newSpawn + spawnPointOffset) = newuID;
-                *(float*)((char*)newSpawn + spawnPosX) = entry.x;
-                *(float*)((char*)newSpawn + spawnPosY) = entry.y;
-                *(float*)((char*)newSpawn + spawnPosZ) = entry.z;
+                *(float*)((char*)newSpawn + spawnPosXOffset) = entry.x;
+                *(float*)((char*)newSpawn + spawnPosYOffset) = entry.y;
+                *(float*)((char*)newSpawn + spawnPosZOffset) = entry.z;
+                *(uint32_t*)((char*)newSpawn + spawnPostureOffset) = entry.posture;
 
-                uint32_t teamMask = (gameMode == 0x8) ? 0x1 : entry.teamMask;
                 *(uint32_t*)((char*)newSpawn + spawnTeamOffset) = teamMask;
-
-                *(uint32_t*)((char*)newSpawn + 0x34) = gameMode;
+                *(uint32_t*)((char*)newSpawn + spawnGameModeOffset) = modeMask;
                 /*
                 printf("[SPAWN] new uid=0x%08X teamMask=0x%X pos=(%.3f, %.3f, %.3f) clone=0x%p template=0x%p\n",
                     newuID, teamMask,
@@ -375,7 +372,11 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
             customSpawnIndex.fetch_add(1, std::memory_order_relaxed);
 
         if (idx < customSpawns.size())
-            emitSpawn(customSpawns[idx]);
+        {
+            const Coords& entry = customSpawns[idx];
+            emitSpawn(entry, 0x8, 0x1);
+            emitSpawn(entry, 0x10, entry.teamMask);
+        }
     }
 
     isInHook = false;

@@ -80,16 +80,33 @@ struct Coords
     float y;
     float z;
     uint32_t teamMask;
+    uint32_t posture;
 };
 
 constexpr size_t spawnPointSize = 0x3C;
 constexpr size_t spawnPointOffset = 0x4;
+
+constexpr size_t spawnPosXOffset = 0x18;
+constexpr size_t spawnPosYOffset = 0x14;
+constexpr size_t spawnPosZOffset = 0x10;
+
+constexpr size_t spawnPostureOffset = 0x2C;
+enum posture
+{
+    stand = 0x0,
+    crouch = 0x1,
+    prone = 0x2
+};
+
 constexpr size_t spawnTeamOffset = 0x30;
-constexpr uint32_t teamGermany = 0x2;
-constexpr uint32_t teamRussia = 0x4;
-constexpr size_t spawnPosX = 0x18;
-constexpr size_t spawnPosY = 0x14;
-constexpr size_t spawnPosZ = 0x10;
+enum team
+{
+    germany = 0x2,
+    russia = 0x4
+};
+
+constexpr size_t spawnGameModeOffset = 0x34;
+
 
 using OperatorNewFn = void* (__cdecl*)(size_t);
 static OperatorNewFn operatorNew = reinterpret_cast<OperatorNewFn>(OperatorNewAddr);
