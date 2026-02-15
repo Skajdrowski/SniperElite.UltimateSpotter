@@ -251,7 +251,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             {
                 quantity = 50;
                 inventoryAssign(thisPtr, 0x9, 50, -1, 0);
-				inventoryAssign(thisPtr, 0xD, 1, -1, 0);
+                inventoryAssign(thisPtr, 0xD, 1, -1, 0);
             }
 
             if (weaponId == 0xF)
@@ -308,7 +308,7 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
             { -55.64f, -15.5f, -71.16f, teamRussia },
             { 76.52f, -15.2f, -80.22f, teamGermany }
         };
-	}
+    }
 
     static bool isInHook = false;
     if (isInHook)
@@ -480,7 +480,7 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(DirectInputAddr),
         DirectInput_Detour,
         reinterpret_cast<void**>(&directInput)) != MH_OK)
-		return;
+        return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(PlayerConstructorAddr),
         PlayerConstructor_Detour,
@@ -515,14 +515,14 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(spawnPointInitAddr),
         SpawnPointInit_Detour,
         reinterpret_cast<void**>(&spawnPointInit)) != MH_OK)
-		return;
+        return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(spawnPointEraseAddr),
         SpawnPointErase_Detour,
         reinterpret_cast<void**>(&spawnPointErase)) != MH_OK)
-		return;
-    
-	MH_EnableHook(MH_ALL_HOOKS);
+        return;
+
+    MH_EnableHook(MH_ALL_HOOKS);
     InstallDirect3DHook();
     CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Thread), nullptr, 0, nullptr);
     wsprintfW(greetBuffer, L"Host currently not in-game");
