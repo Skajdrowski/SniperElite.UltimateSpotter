@@ -178,13 +178,8 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
                 weaponId = 0x0;
 
                 srand(static_cast<uint32_t>(time(nullptr)));
-                const uint32_t machineGuns[] = {
-                    0x18, 0x18, 0x18,
-                    0x19, 0x19, 0x19,
-                    0x1A, // make MG40 a bit rare, cuz it's OP ?
-                    0x1B, 0x1B, 0x1B
-                };
-                int randomized = machineGuns[rand() % (sizeof(machineGuns) / sizeof(*machineGuns))];
+                const uint32_t machineGuns[] = {0x18, 0x19, 0x1A, 0x1B};
+                const uint32_t randomized = machineGuns[rand() % (sizeof(machineGuns) / sizeof(*machineGuns))];
 
                 if (randomized == 0x18)
                 {
@@ -306,7 +301,16 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
     {
         customSpawns = {
             { -55.64f, -15.5f, -71.16f, russia, prone },
-            { 76.52f, -15.2f, -80.22f, germany, prone }
+            { 76.52f, -15.2f, -80.22f, germany, prone },
+            { -37.73f, -15.5f, 54.42f, russia, prone },
+            { 40.64f, -15.71f, -39.19f, germany, prone }
+        };
+    }
+    if (strcmp(curLevel, "08d.pc") == 0)
+    {
+        customSpawns = {
+            { 95.72f, -7.48f, 27.88f, russia, stand },
+            { -98.89f, -19.11f, -40.56f, germany, prone }
         };
     }
 
@@ -529,9 +533,12 @@ static void Init()
     wsprintfW(greetBuffer, L"Host currently not in-game");
 }
 
-BOOL WINAPI DllMain(HINSTANCE, DWORD reason, LPVOID)
+BOOL WINAPI DllMain(HINSTANCE hInst, DWORD reason, LPVOID)
 {
     if (reason == DLL_PROCESS_ATTACH)
+    {
+        DisableThreadLibraryCalls(hInst);
         Init();
+    }
     return TRUE;
 }

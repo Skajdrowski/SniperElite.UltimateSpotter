@@ -144,12 +144,10 @@ void EnsureRenderTargets(const D3DVIEWPORT8& viewport)
         delete g_guiRenderTarget;
         g_guiRenderTarget = nullptr;
 
-        try
+        g_guiRenderTarget = new (std::nothrow) RenderTarget(g_pd3dDevice, width, height);
+        if (g_guiRenderTarget && !g_guiRenderTarget->IsValid())
         {
-            g_guiRenderTarget = new RenderTarget(g_pd3dDevice, width, height);
-        }
-        catch (...)
-        {
+            delete g_guiRenderTarget;
             g_guiRenderTarget = nullptr;
         }
 
@@ -161,12 +159,10 @@ void EnsureRenderTargets(const D3DVIEWPORT8& viewport)
         delete g_greetingRenderTarget;
         g_greetingRenderTarget = nullptr;
 
-        try
+        g_greetingRenderTarget = new (std::nothrow) RenderTarget(g_pd3dDevice, width, height);
+        if (g_greetingRenderTarget && !g_greetingRenderTarget->IsValid())
         {
-            g_greetingRenderTarget = new RenderTarget(g_pd3dDevice, width, height);
-        }
-        catch (...)
-        {
+            delete g_greetingRenderTarget;
             g_greetingRenderTarget = nullptr;
         }
 

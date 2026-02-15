@@ -3,25 +3,21 @@
 #include <stdexcept>
 
 RenderTarget::RenderTarget(LPDIRECT3DDEVICE8 device, int width, int height)
-    : m_device(device), m_width(width), m_height(height)
+    : m_device(device), m_width(width), m_height(height), m_valid(false)
 {
     if (!m_device)
-        throw std::runtime_error("RenderTarget requires a valid device");
+        return;
 
     if (FAILED(m_device->CreateTexture(width, height, 1, D3DUSAGE_RENDERTARGET,
         D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &m_texture)) || !m_texture)
-    {
-        throw std::runtime_error("Failed to create render target texture");
-    }
+        return;
 
     if (FAILED(m_texture->GetSurfaceLevel(0, &m_surface)) || !m_surface)
-        throw std::runtime_error("Failed to get render target surface");
+        return;
 
     if (FAILED(m_device->CreateDepthStencilSurface(width, height, D3DFMT_D16,
         D3DMULTISAMPLE_NONE, &m_depthStencilSurface)))
-    {
-        throw std::runtime_error("Failed to create depth stencil surface");
-    }
+        return;
 
     m_viewport.X = 0;
     m_viewport.Y = 0;
@@ -29,6 +25,8 @@ RenderTarget::RenderTarget(LPDIRECT3DDEVICE8 device, int width, int height)
     m_viewport.Height = height;
     m_viewport.MinZ = 0.0f;
     m_viewport.MaxZ = 1.0f;
+
+    m_valid = true;
 }
 
 RenderTarget::~RenderTarget()

@@ -11,6 +11,7 @@ public:
     void EndScene();
     void Blit(int destX = 0, int destY = 0);
 
+    bool IsValid() const { return m_valid; }
     int Width() const { return m_width; }
     int Height() const { return m_height; }
 
@@ -23,6 +24,7 @@ private:
     LPDIRECT3DSURFACE8 m_oldDepthStencilSurface = nullptr;
     D3DVIEWPORT8 m_viewport = {};
 
+    bool m_valid = false;
     int m_width = 0;
     int m_height = 0;
 };
