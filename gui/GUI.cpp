@@ -43,52 +43,20 @@ bool g_greetingDirty = true;
 D3DVIEWPORT8 g_lastViewport = {};
 bool g_lastViewportValid = false;
 
-struct PromptState
-{
-    std::wstring input;
-    std::wstring savedValue;
-    std::wstring savedInput;
-};
 PromptState g_prompt;
 
 constexpr size_t kPromptMaxChars = 48;
-enum class TextFieldFocus
-{
-    None,
-    FetchInput,
-    SavedValue
-};
 TextFieldFocus g_activeTextField = TextFieldFocus::None;
 
 bool g_leftMouseWasDown = false;
 std::array<bool, 256> g_keyLatch{};
 
-struct FetchState
-{
-    bool hasResult = false;
-    uint32_t uid = 0;
-    void* inventory = nullptr;
-    std::wstring statusMessage;
-    std::wstring displayName;
-    bool online = false;
-    std::string ip;
-};
 FetchState g_fetch;
 
 int g_currentPage = 0;
 
 static bool g_loadoutPresetDropdownOpen = false;
 
-struct SnapshotState
-{
-    bool hasCursor = false;
-    POINT cursor = {};
-    bool leftMouseDown = false;
-    bool isVisible = false;
-    TextFieldFocus textField = TextFieldFocus::None;
-    int currentPage = 0;
-    size_t playerSignature = 0;
-};
 SnapshotState g_snapshot;
 
 std::wstring g_snapshotGreetingText;
@@ -96,7 +64,7 @@ bool g_snapshotGreetingVisible = false;
 
 bool IsGameLoading()
 {
-    const uint8_t* const loadPtr = reinterpret_cast<const uint8_t*>(loadingFlagAddr);
+    const uint8_t* const loadPtr = reinterpret_cast<const uint8_t*>(LoadingFlagAddr);
     return *loadPtr == 0;
 }
 
@@ -417,7 +385,7 @@ void PerformInventoryFetch()
 {
     g_fetch.hasResult = false;
     g_fetch.uid = 0;
-    g_fetch.inventory = nullptr;
+    g_fetch.player = nullptr;
     g_fetch.displayName.clear();
     g_fetch.online = false;
     g_fetch.ip.clear();
@@ -447,12 +415,12 @@ void PerformInventoryFetch()
                 return false;
 
             g_fetch.uid = entry.uid;
-            g_fetch.inventory = entry.inventory;
-            if (!g_fetch.inventory)
+            g_fetch.player = entry.player;
+            if (!g_fetch.player)
             {
-                const std::map<uint32_t, void*>::iterator invIt = g_uIdToInventoryMap.find(entry.uid);
-                if (invIt != g_uIdToInventoryMap.end())
-                    g_fetch.inventory = invIt->second;
+                const std::map<uint32_t, void*>::iterator invIt = uIdToPlayer.find(entry.uid);
+                if (invIt != uIdToPlayer.end())
+                    g_fetch.player = invIt->second;
             }
 
             g_fetch.displayName = !entry.displayName.empty() ? entry.displayName : name;
@@ -479,15 +447,15 @@ void PerformInventoryFetch()
     g_fetch.uid = parsedUID;
     g_fetch.displayName = trimmedInput;
 
-    const std::map<uint32_t, void*>::iterator it = g_uIdToInventoryMap.find(parsedUID);
-    if (it != g_uIdToInventoryMap.end())
+    const std::map<uint32_t, void*>::iterator it = uIdToPlayer.find(parsedUID);
+    if (it != uIdToPlayer.end())
     {
-        g_fetch.inventory = it->second;
+        g_fetch.player = it->second;
         g_fetch.online = true;
     }
     else
     {
-        g_fetch.inventory = nullptr;
+        g_fetch.player = nullptr;
         g_fetch.online = false;
     }
 
@@ -1182,6 +1150,151 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     "Disable TDM AutoBalance"
                 );
 
+                y += checkboxSize + 8;
+
+                // Anti OOB checkmark
+                RECT antiCheckboxRect{
+                    panelX + padX,
+                    y,
+                    panelX + padX + checkboxSize,
+                    y + checkboxSize
+                };
+
+                RECT antiCheckboxLabelRect{
+                    antiCheckboxRect.right + 8,
+                    y,
+                    panelX + panelSize / 2 - 10,
+                    y + checkboxSize
+                };
+
+                const bool overAntiCheckbox =
+                    hasCursorPosition &&
+                    (IsPointInsideRect(cursorPosition, antiCheckboxRect) ||
+                        IsPointInsideRect(cursorPosition, antiCheckboxLabelRect));
+
+                if (mousePressedThisFrame && overAntiCheckbox)
+                {
+                    antiOOB = !antiOOB;
+                    g_guiDirty = true;
+                }
+
+                Render::Draw(
+                    g_pd3dDevice,
+                    antiCheckboxRect.left,
+                    antiCheckboxRect.top,
+                    checkboxSize,
+                    checkboxSize,
+                    overAntiCheckbox ? 0xFF2F4F8F : 0xFF1E1E1E
+                );
+                Render::Outline(
+                    g_pd3dDevice,
+                    antiCheckboxRect.left,
+                    antiCheckboxRect.top,
+                    checkboxSize,
+                    checkboxSize,
+                    0xFFFFFFFF
+                );
+                if (antiOOB)
+                {
+                    Render::Text(
+                        Render::Fonts::MenuTabs,
+                        antiCheckboxRect.left + 4,
+                        antiCheckboxRect.top + 1,
+                        0xFF7CFC00,
+                        "X"
+                    );
+                }
+                Render::Text(
+                    Render::Fonts::MenuText,
+                    antiCheckboxLabelRect.left,
+                    antiCheckboxLabelRect.top + 2,
+                    0xFFFFFFFF,
+                    "Anti Out of Bounds"
+                );
+
+                if (overAntiCheckbox)
+                {
+                    Render::Text(
+                        Render::Fonts::MenuText,
+                        antiCheckboxLabelRect.left,
+                        antiCheckboxLabelRect.top + 2 + checkboxSize,
+                        0xFFAAAAAA,
+                        "Prevents players from entering inaccessible areas"
+                    );
+                }
+
+                // Custom spawns checkmark
+                RECT customSpawnsCheckboxRect{
+                    panelX + panelSize / 2,
+                    y,
+                    panelX + panelSize / 2 + checkboxSize,
+                    y + checkboxSize
+                };
+
+                RECT customSpawnsCheckboxLabelRect{
+                    customSpawnsCheckboxRect.right + 8,
+                    y,
+                    panelX + panelSize - padX,
+                    y + checkboxSize
+                };
+
+                const bool overCustomSpawnsCheckbox =
+                    hasCursorPosition &&
+                    (IsPointInsideRect(cursorPosition, customSpawnsCheckboxRect) ||
+                        IsPointInsideRect(cursorPosition, customSpawnsCheckboxLabelRect));
+                const bool customSpawnsAvailable = strcmp(curLevel, "ntend.pc") == 0;
+
+                if (mousePressedThisFrame && overCustomSpawnsCheckbox && customSpawnsAvailable)
+                {
+                    customSpawnsToggle = !customSpawnsToggle;
+                    g_guiDirty = true;
+                }
+
+                Render::Draw(
+                    g_pd3dDevice,
+                    customSpawnsCheckboxRect.left,
+                    customSpawnsCheckboxRect.top,
+                    checkboxSize,
+                    checkboxSize,
+                    !customSpawnsAvailable ? 0xFF141414 : (overCustomSpawnsCheckbox ? 0xFF2F4F8F : 0xFF1E1E1E)
+                );
+                Render::Outline(
+                    g_pd3dDevice,
+                    customSpawnsCheckboxRect.left,
+                    customSpawnsCheckboxRect.top,
+                    checkboxSize,
+                    checkboxSize,
+                    !customSpawnsAvailable ? 0xFF666666 : 0xFFFFFFFF
+                );
+                if (customSpawnsToggle)
+                {
+                    Render::Text(
+                        Render::Fonts::MenuTabs,
+                        customSpawnsCheckboxRect.left + 4,
+                        customSpawnsCheckboxRect.top + 1,
+                        !customSpawnsAvailable ? 0xFF6B6B6B : 0xFF7CFC00,
+                        "X"
+                    );
+                }
+                Render::Text(
+                    Render::Fonts::MenuText,
+                    customSpawnsCheckboxLabelRect.left,
+                    customSpawnsCheckboxLabelRect.top + 2,
+                    !customSpawnsAvailable ? 0xFF8A8A8A : 0xFFFFFFFF,
+                    "Custom spawns"
+                );
+
+                if (overCustomSpawnsCheckbox && !customSpawnsAvailable)
+                {
+                    Render::Text(
+                        Render::Fonts::MenuText,
+                        customSpawnsCheckboxLabelRect.left,
+                        customSpawnsCheckboxLabelRect.top + 2 + checkboxSize,
+                        0xFFAAAAAA,
+                        "You can't toggle custom spawns while in a lobby"
+                    );
+                }
+
                 // Bottom value + Save
                 const int bottomH = 40;
                 const int saveW = 120;
@@ -1827,7 +1940,7 @@ void GUI::Toggle()
 
         g_fetch.hasResult = false;
         g_fetch.uid = 0;
-        g_fetch.inventory = nullptr;
+        g_fetch.player = nullptr;
         g_fetch.displayName.clear();
         g_fetch.online = false;
         g_fetch.ip.clear();

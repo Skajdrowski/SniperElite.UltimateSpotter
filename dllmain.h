@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <cstdint>
+#include <unordered_set>
 #include <map>
 #include <string>
 
@@ -11,17 +12,21 @@ constexpr uintptr_t DirectInputAddr = 0x40AC10;
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
 constexpr uintptr_t PlayerIPListenerAddr = 0x641D60;
 constexpr uintptr_t PlayerConstructorAddr = 0x56F390;
+constexpr uintptr_t PlayerGetCoordsAddr = 0x533880;
+constexpr uintptr_t FallDamageAddr = 0x525770;
 constexpr uintptr_t InventoryAssignAddr = 0x519C90;
 constexpr uintptr_t InventoryCapAddr = 0x511420;
 constexpr uintptr_t KickPlayerAddr = 0x454610;
 constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
-constexpr uintptr_t loadingFlagAddr = 0x7A35A9;
-constexpr uintptr_t spawnPointInitAddr = 0x591A40;
-constexpr uintptr_t spawnPointInjectAddr = 0x591C70;
-constexpr uintptr_t spawnPointEraseAddr = 0x591D20;
+constexpr uintptr_t LoadingFlagAddr = 0x7A35A9;
+constexpr uintptr_t SpawnPointInitAddr = 0x591A40;
+constexpr uintptr_t SpawnPointInjectAddr = 0x591C70;
+constexpr uintptr_t SpawnPointEraseAddr = 0x591D20;
 
 extern bool isHost;
-static const char* curLevel;
+extern bool customSpawnsToggle;
+extern bool antiOOB;
+extern const char* curLevel;
 
 struct Fetch {
     uint8_t unknownShit[8];
@@ -34,10 +39,11 @@ struct Fetch {
 using DirectInputFn = uint32_t(__cdecl*)();
 static DirectInputFn directInput = nullptr;
 
-using PlayerConstructorFn = void* (__thiscall*)(void*, int, int, int);
+using PlayerConstructorFn = void* (__thiscall*)(void*, uint32_t, int, int);
 static PlayerConstructorFn playerConstructor = nullptr;
 extern bool isPopulated;
 extern wchar_t greetBuffer[36];
+extern std::map<uint32_t, void*> uIdToPlayer;
 
 using KickFn = uint8_t(__cdecl*)(int uID, int reason);
 static KickFn kick = reinterpret_cast<KickFn>(KickPlayerAddr);
@@ -53,13 +59,38 @@ static PlayerFetchFn playerFetch = nullptr;
 struct PlayerFetchEntry
 {
     uint32_t uid = 0;
+    void* player = nullptr;
     void* inventory = nullptr;
     bool isOnline = false;
     std::wstring displayName;
     std::string ipAddress;
 };
-extern std::map<uint32_t, void*> g_uIdToInventoryMap;
 extern std::map<std::wstring, PlayerFetchEntry> g_playerDirectory;
+
+struct playerCoords
+{
+    float x;
+    float y;
+    float z;
+};
+using PlayerGetCoordsFn = void(__thiscall*)(void*, float*);
+static PlayerGetCoordsFn playerGetCoords = nullptr;
+static bool IsInsideVolume(const playerCoords& pos, const playerCoords& minV, const playerCoords& maxV)
+{
+    const float minX = (std::min)(minV.x, maxV.x);
+    const float maxX = (std::max)(minV.x, maxV.x);
+    const float minY = (std::min)(minV.y, maxV.y);
+    const float maxY = (std::max)(minV.y, maxV.y);
+    const float minZ = (std::min)(minV.z, maxV.z);
+    const float maxZ = (std::max)(minV.z, maxV.z);
+
+    return pos.x >= minX && pos.x <= maxX
+        && pos.y >= minY && pos.y <= maxY
+        && pos.z >= minZ && pos.z <= maxZ;
+}
+
+using FallDamageFn = uint32_t(__cdecl*)(float, uint32_t);
+static FallDamageFn fallDamage = reinterpret_cast <FallDamageFn>(FallDamageAddr);
 
 using InventoryAssignFn = uint8_t(__thiscall*)(void*, uint32_t, int, int, int);
 static InventoryAssignFn inventoryAssign = nullptr;
@@ -74,7 +105,7 @@ using AutoBalanceUpdateFn = void(__thiscall*)(void*);
 static AutoBalanceUpdateFn autoBalanceUpdate = nullptr;
 static bool balanceToggle = false;
 
-struct Coords
+struct spawnCoords
 {
     float x;
     float y;
@@ -115,7 +146,7 @@ using SpawnPointInitFn = void* (__thiscall*)(void*, int, int**);
 static SpawnPointInitFn spawnPointInit = nullptr;
 
 using SpawnPointInjectFn = void* (__thiscall*)(void*, void*);
-static SpawnPointInjectFn spawnPointInject = reinterpret_cast<SpawnPointInjectFn>(spawnPointInjectAddr);
+static SpawnPointInjectFn spawnPointInject = reinterpret_cast<SpawnPointInjectFn>(SpawnPointInjectAddr);
 
 static void* spawnListTable = reinterpret_cast<void*>(0x75A5C8);
 

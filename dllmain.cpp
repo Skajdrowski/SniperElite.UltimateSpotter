@@ -4,16 +4,19 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <unordered_set>
 
 #pragma comment(lib, "ws2_32.lib")
 //#define LAN
+//#define DEBUG_LOGGING
 
 #ifndef _countof
 #define _countof(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
 
 bool isHost = false;
+const char* curLevel = nullptr;
+bool customSpawnsToggle = false;
+bool antiOOB = true;
 
 static uint32_t __cdecl DirectInput_Detour()
 {
@@ -66,12 +69,20 @@ static int WSAAPI bind_Detour(SOCKET s, const sockaddr* name, int namelen)
 }
 #endif
 
-static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, int uID, int a3, int a4)
+std::map<uint32_t, void*> uIdToPlayer;
+static std::unordered_map<void*, uint32_t> playerTouID;
+static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, uint32_t uID, int a3, int a4)
 {
     void* playerObject = playerConstructor(thisPtr, uID, a3, a4);
     void* ThisPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
+#ifdef DEBUG_LOGGING
+    printf("PlayerConstructor called for uID=%d, playerObject=0x%p\n", uID, playerObject);
+	printf("Extracted inventory pointer: 0x%p\n", ThisPtr);
+#endif
 
-    g_uIdToInventoryMap[uID] = ThisPtr;
+    uIdToPlayer[uID] = playerObject;
+	playerTouID[playerObject] = uID;
+
     return playerObject;
 }
 
@@ -79,15 +90,13 @@ char ipBuffer[INET_ADDRSTRLEN];
 static std::unordered_set<std::string> g_bannedIpAddresses;
 static uint32_t __cdecl PlayerIPListener_Detour(void* netManager, void** thisPtr, uint32_t ip, uint16_t port)
 {
-    std::map<std::wstring, PlayerFetchEntry>::iterator it = g_playerDirectory.begin();
-    if (it != g_playerDirectory.end())
-    {
-        PlayerFetchEntry& matchedEntry = it->second;
+    in_addr addr{};
+    addr.s_addr = ip;
+    inet_ntop(AF_INET, &addr, ipBuffer, INET_ADDRSTRLEN); // Converts to dotted-decimal format
+#ifdef DEBUG_LOGGING
+	printf("PlayerIPListener called with IP: %s\n", ipBuffer);
+#endif
 
-        in_addr addr{};
-        addr.s_addr = ip;
-        inet_ntop(AF_INET, &addr, ipBuffer, INET_ADDRSTRLEN); // Converts to dotted-decimal format
-    }
     return playerIPListener(netManager, thisPtr, ip, port);
 }
 bool banIpAddress(const std::string& ipAddress)
@@ -113,19 +122,22 @@ bool isIpAddressBanned(const std::string& ipAddress)
     return g_bannedIpAddresses.count(ipAddress) > 0;
 }
 
-std::map<uint32_t, void*> g_uIdToInventoryMap;
 std::map<std::wstring, PlayerFetchEntry> g_playerDirectory;
 bool isPopulated = false;
 wchar_t greetBuffer[36];
+static std::unordered_map<void*, playerCoords> g_entityCoords;
+static std::unordered_set<void*> g_activeEntities;
 static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
 {
     isPopulated = (fetchStruct->uID > 0);
-    void* inventoryPtr = g_uIdToInventoryMap.count(fetchStruct->uID) ? g_uIdToInventoryMap[fetchStruct->uID] : nullptr;
+    void* playerObject = uIdToPlayer.count(fetchStruct->uID) ? uIdToPlayer[fetchStruct->uID] : nullptr;
+    void* inventoryPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
 
     const std::wstring nameKey = fetchStruct->nickname;
     PlayerFetchEntry& entry = g_playerDirectory[nameKey];
 
     entry.uid = fetchStruct->uID;
+    entry.player = playerObject;
     entry.inventory = inventoryPtr;
     entry.isOnline = fetchStruct->isJoining != 0;
     entry.displayName = nameKey;
@@ -137,14 +149,52 @@ static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
     }
     else
         entry.ipAddress = ipBuffer;
-
+#ifdef DEBUG_LOGGING
+    printf("PlayerFetch called for uID=%d, isJoining=%d, resolved IP=%s\n",
+        fetchStruct->uID, fetchStruct->isJoining, entry.ipAddress.c_str());
+#endif
     if (fetchStruct->isJoining && isIpAddressBanned(entry.ipAddress))
         kick(fetchStruct->uID, 4);
 
-    if (!fetchStruct->isJoining)
-        g_uIdToInventoryMap.erase(fetchStruct->uID);
+    if (fetchStruct->isJoining)
+        g_activeEntities.insert(playerObject);
+    else
+    {
+        g_activeEntities.erase(playerObject);
+        uIdToPlayer.erase(fetchStruct->uID);
+    }
 
     return playerFetch(fetchStruct);
+}
+
+static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, float* outVec3)
+{
+    void* entityPtr = nullptr;
+    __asm { mov entityPtr, esi }
+
+    playerGetCoords(thisPtr, outVec3);
+
+    if (g_activeEntities.contains(entityPtr))
+    {
+        const playerCoords coords{ outVec3[2], outVec3[1], outVec3[0] };
+        g_entityCoords[entityPtr] = coords;
+
+        if (antiOOB && strcmp(curLevel, "01a.pc") == 0)
+            if
+            (
+                IsInsideVolume(coords, { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }) // Sewers
+                || IsInsideVolume(coords, { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f }) // Lifting barrier
+            )
+            {
+                const auto uID = playerTouID.find(entityPtr);
+                if (uID != playerTouID.end())
+                    fallDamage(1337.f, uID->second);
+            }
+#ifdef DEBUG_LOGGING
+        printf("PlayerGetCoords called for entity=0x%p, coords=(%.3f, %.3f, %.3f)\n",
+            entityPtr, outVec3[2], outVec3[1], outVec3[0]);
+#endif
+    }
 }
 
 bool g_everyoneHasKnife = false;
@@ -152,8 +202,9 @@ bool g_loadoutPresetsEnabled = false;
 uint32_t g_selectedLoadoutPresetIndex = 0;
 static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown register*/, uint32_t weaponId, int quantity, int reason, int ammo)
 {
+#ifdef DEBUG_LOGGING
     //printf("inventory: 0x%p, weaponId=0x%X, quantity=%d, reason=%d, ammo=%d\n", thisPtr, weaponId, quantity, reason, ammo);
-
+#endif
     if (g_loadoutPresetsEnabled)
     {
         if (g_selectedLoadoutPresetIndex == 0) // Sniper only
@@ -285,33 +336,36 @@ static void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
     return;
 }
 
-static std::vector<Coords> customSpawns{};
+static std::vector<spawnCoords> customSpawns{};
 static std::atomic<uint32_t> customSpawnIndex{};
 static std::vector<void*> injectedSpawnPoints;
 static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2, int** a3)
 {
-    if (strcmp(curLevel, "01b.pc") == 0)
+    if (customSpawnsToggle)
     {
-        customSpawns = {
-            { 107.83f, -6.45f, -89.65f, russia, crouch },
-            { 257.8721008f, 9.7f, -137.5167542f, germany, crouch }
-        };
-    }
-    if (strcmp(curLevel, "04a.pc") == 0)
-    {
-        customSpawns = {
-            { -55.64f, -15.5f, -71.16f, russia, prone },
-            { 76.52f, -15.2f, -80.22f, germany, prone },
-            { -37.73f, -15.5f, 54.42f, russia, prone },
-            { 40.64f, -15.71f, -39.19f, germany, prone }
-        };
-    }
-    if (strcmp(curLevel, "08d.pc") == 0)
-    {
-        customSpawns = {
-            { 95.72f, -7.48f, 27.88f, russia, stand },
-            { -98.89f, -19.11f, -40.56f, germany, prone }
-        };
+        if (strcmp(curLevel, "01b.pc") == 0)
+        {
+            customSpawns = {
+                { 107.83f, -6.45f, -89.65f, russia, crouch },
+                { 257.8721008f, 9.7f, -137.5167542f, germany, crouch }
+            };
+        }
+        if (strcmp(curLevel, "04a.pc") == 0)
+        {
+            customSpawns = {
+                { -55.64f, -15.5f, -71.16f, russia, prone },
+                { 76.52f, -15.2f, -80.22f, germany, prone },
+                { -37.73f, -15.5f, 54.42f, russia, prone },
+                { 40.64f, -15.71f, -39.19f, germany, prone }
+            };
+        }
+        if (strcmp(curLevel, "08d.pc") == 0)
+        {
+            customSpawns = {
+                { 95.72f, -7.48f, 27.88f, russia, stand },
+                { -98.89f, -19.11f, -40.56f, germany, prone }
+            };
+        }
     }
 
     static bool isInHook = false;
@@ -343,7 +397,7 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
             injecteduID.store(seed, std::memory_order_relaxed);
         }
 
-        auto emitSpawn = [&](const Coords entry, uint32_t modeMask, uint32_t teamMask)
+        auto emitSpawn = [&](const spawnCoords entry, uint32_t modeMask, uint32_t teamMask)
             {
                 void* newSpawn = operatorNew(spawnPointSize);
                 if (!newSpawn)
@@ -362,22 +416,20 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
 
                 *(uint32_t*)((char*)newSpawn + spawnTeamOffset) = teamMask;
                 *(uint32_t*)((char*)newSpawn + spawnGameModeOffset) = modeMask;
-                /*
+#ifdef DEBUG_LOGGING       
                 printf("[SPAWN] new uid=0x%08X teamMask=0x%X pos=(%.3f, %.3f, %.3f) clone=0x%p template=0x%p\n",
                     newuID, teamMask,
                     entry.x, entry.y, entry.z,
                     newSpawn, sp);
-                */
+#endif
                 spawnPointInject(spawnListTable, newSpawn);
                 injectedSpawnPoints.push_back(newSpawn);
             };
 
-        uint32_t idx =
-            customSpawnIndex.fetch_add(1, std::memory_order_relaxed);
-
+        uint32_t idx = customSpawnIndex.fetch_add(1, std::memory_order_relaxed);
         if (idx < customSpawns.size())
         {
-            const Coords& entry = customSpawns[idx];
+            const spawnCoords& entry = customSpawns[idx];
             emitSpawn(entry, 0x8, 0x1);
             emitSpawn(entry, 0x10, entry.teamMask);
         }
@@ -455,11 +507,14 @@ static void Thread()
         */
         isHost = *((const uint8_t*)0x7814F5);
         curLevel = (const char*)0x8185A0;
-        if (*((const char*)0x818AB0) == *"frontsc2.dds" && isPopulated)
+
+        if (strcmp(curLevel, "ntend.pc") == 0 && isPopulated)
         {
             isPopulated = false;
             g_playerDirectory.clear();
-            g_uIdToInventoryMap.clear();
+            uIdToPlayer.clear();
+            g_activeEntities.clear();
+            g_entityCoords.clear();
             wsprintfW(greetBuffer, L"Host currently not in-game");
         }
 
@@ -469,12 +524,12 @@ static void Thread()
 
 static void Init()
 {
-    /*
+#ifdef DEBUG_LOGGING
     AllocConsole();
     freopen("CONIN$", "r", stdin);
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
-    */
+#endif
 
     if (MH_Initialize() != MH_OK)
         return;
@@ -517,12 +572,17 @@ static void Init()
         reinterpret_cast<void**>(&autoBalanceUpdate)) != MH_OK)
         return;
 
-    if (MH_CreateHook(reinterpret_cast<void*>(spawnPointInitAddr),
+    if (MH_CreateHook(reinterpret_cast<void*>(PlayerGetCoordsAddr),
+        PlayerGetCoords_Detour,
+        reinterpret_cast<void**>(&playerGetCoords)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(SpawnPointInitAddr),
         SpawnPointInit_Detour,
         reinterpret_cast<void**>(&spawnPointInit)) != MH_OK)
         return;
 
-    if (MH_CreateHook(reinterpret_cast<void*>(spawnPointEraseAddr),
+    if (MH_CreateHook(reinterpret_cast<void*>(SpawnPointEraseAddr),
         SpawnPointErase_Detour,
         reinterpret_cast<void**>(&spawnPointErase)) != MH_OK)
         return;

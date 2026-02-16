@@ -2,6 +2,42 @@
 #include "../dxsdk/include/d3d8.h"
 #include "../dllmain.h"
 
+struct PromptState
+{
+    std::wstring input;
+    std::wstring savedValue;
+    std::wstring savedInput;
+};
+
+enum class TextFieldFocus
+{
+    None,
+    FetchInput,
+    SavedValue
+};
+
+struct FetchState
+{
+    bool hasResult = false;
+    uint32_t uid = 0;
+	void* player = nullptr;
+    std::wstring statusMessage;
+    std::wstring displayName;
+    bool online = false;
+    std::string ip;
+};
+
+struct SnapshotState
+{
+    bool hasCursor = false;
+    POINT cursor = {};
+    bool leftMouseDown = false;
+    bool isVisible = false;
+    TextFieldFocus textField = TextFieldFocus::None;
+    int currentPage = 0;
+    size_t playerSignature = 0;
+};
+
 static std::wstring Trim(const std::wstring& text);
 
 class GUI
