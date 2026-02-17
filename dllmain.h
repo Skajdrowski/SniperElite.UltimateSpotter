@@ -5,12 +5,13 @@
 #include <cstdint>
 #include <unordered_set>
 #include <map>
+#include <unordered_map>
 #include <string>
 
 constexpr uintptr_t OperatorNewAddr = 0x6A6322;
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
-constexpr uintptr_t PlayerIPListenerAddr = 0x641D60;
+constexpr uintptr_t PlayerJoinSendAddr = 0x446790;
 constexpr uintptr_t PlayerConstructorAddr = 0x56F390;
 constexpr uintptr_t PlayerGetCoordsAddr = 0x533880;
 constexpr uintptr_t FallDamageAddr = 0x525770;
@@ -48,8 +49,8 @@ extern std::map<uint32_t, void*> uIdToPlayer;
 using KickFn = uint8_t(__cdecl*)(int uID, int reason);
 static KickFn kick = reinterpret_cast<KickFn>(KickPlayerAddr);
 
-using PlayerIPListenerFn = uint32_t(__cdecl*)(void*, void**, uint32_t, uint16_t);
-static PlayerIPListenerFn playerIPListener = nullptr;
+using PlayerJoinSendFn = int(__cdecl*)(int, int);
+static PlayerJoinSendFn playerJoinSend = nullptr;
 extern bool banIpAddress(const std::string& ipAddress);
 extern bool unBanIpAddress(const std::string& ipAddress);
 extern bool isIpAddressBanned(const std::string& ipAddress);

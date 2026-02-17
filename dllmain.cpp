@@ -86,19 +86,40 @@ static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown 
     return playerObject;
 }
 
-char ipBuffer[INET_ADDRSTRLEN];
 static std::unordered_set<std::string> g_bannedIpAddresses;
-static uint32_t __cdecl PlayerIPListener_Detour(void* netManager, void** thisPtr, uint32_t ip, uint16_t port)
+static std::unordered_map<uint32_t, std::string> g_uIdToIp;
+static void __cdecl PlayerJoinIPMap_Callback(uint32_t uID, uint32_t ip)
 {
     in_addr addr{};
     addr.s_addr = ip;
-    inet_ntop(AF_INET, &addr, ipBuffer, INET_ADDRSTRLEN); // Converts to dotted-decimal format
+    char ipStr[INET_ADDRSTRLEN]{};
+    inet_ntop(AF_INET, &addr, ipStr, INET_ADDRSTRLEN);
+    g_uIdToIp[uID] = ipStr;
 #ifdef DEBUG_LOGGING
-	printf("PlayerIPListener called with IP: %s\n", ipBuffer);
+	printf("PlayerJoinSend: Mapped uID %d to IP %s\n", uID, ipStr);
 #endif
-
-    return playerIPListener(netManager, thisPtr, ip, port);
 }
+
+static int __cdecl PlayerJoinSend_Detour(int connPtr, int msgPtr)
+{
+    if (_ReturnAddress() == reinterpret_cast<void*>(0x446CC0))
+    {
+        const uint32_t msgType = *reinterpret_cast<const uint32_t*>(msgPtr);
+        if (msgType == 1)
+        {
+            uint32_t uID = 0;
+            const uint32_t* data = *reinterpret_cast<uint32_t**>(msgPtr + 0x18);
+            if (data)
+                uID = *data;
+
+            const uint32_t ip = *reinterpret_cast<const uint32_t*>(connPtr);
+            PlayerJoinIPMap_Callback(uID, ip);
+        }
+    }
+
+    return playerJoinSend(connPtr, msgPtr);
+}
+
 bool banIpAddress(const std::string& ipAddress)
 {
     if (ipAddress.empty() || ipAddress == "localhost")
@@ -148,7 +169,11 @@ static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
         entry.ipAddress = "localhost";
     }
     else
-        entry.ipAddress = ipBuffer;
+    {
+        const auto it = g_uIdToIp.find(fetchStruct->uID);
+        if (it != g_uIdToIp.end())
+            entry.ipAddress = it->second;
+    }
 #ifdef DEBUG_LOGGING
     printf("PlayerFetch called for uID=%d, isJoining=%d, resolved IP=%s\n",
         fetchStruct->uID, fetchStruct->isJoining, entry.ipAddress.c_str());
@@ -162,6 +187,7 @@ static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
     {
         g_activeEntities.erase(playerObject);
         uIdToPlayer.erase(fetchStruct->uID);
+        g_uIdToIp.erase(fetchStruct->uID);
     }
 
     return playerFetch(fetchStruct);
@@ -191,8 +217,7 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
                     fallDamage(1337.f, uID->second);
             }
 #ifdef DEBUG_LOGGING
-        printf("PlayerGetCoords called for entity=0x%p, coords=(%.3f, %.3f, %.3f)\n",
-            entityPtr, outVec3[2], outVec3[1], outVec3[0]);
+        //printf("entity=0x%p, coords=(%.3f, %.3f, %.3f)\n", entityPtr, outVec3[2], outVec3[1], outVec3[0]);
 #endif
     }
 }
@@ -513,6 +538,7 @@ static void Thread()
             isPopulated = false;
             g_playerDirectory.clear();
             uIdToPlayer.clear();
+            g_uIdToIp.clear();
             g_activeEntities.clear();
             g_entityCoords.clear();
             wsprintfW(greetBuffer, L"Host currently not in-game");
@@ -547,9 +573,9 @@ static void Init()
         reinterpret_cast<void**>(&playerConstructor)) != MH_OK)
         return;
 
-    if (MH_CreateHook(reinterpret_cast<void*>(PlayerIPListenerAddr),
-        PlayerIPListener_Detour,
-        reinterpret_cast<void**>(&playerIPListener)) != MH_OK)
+    if (MH_CreateHook(reinterpret_cast<void*>(PlayerJoinSendAddr),
+        PlayerJoinSend_Detour,
+        reinterpret_cast<void**>(&playerJoinSend)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(PlayerFetchAddr),
