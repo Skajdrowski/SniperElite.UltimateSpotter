@@ -20,6 +20,8 @@ constexpr uintptr_t InventoryCapAddr = 0x511420;
 constexpr uintptr_t KickPlayerAddr = 0x454610;
 constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
 constexpr uintptr_t LoadingFlagAddr = 0x7A35A9;
+constexpr uintptr_t SpawnPointScoreAddr = 0x61D500;
+constexpr uintptr_t SpawnListTableAddr = 0x75A5C8;
 constexpr uintptr_t SpawnPointInitAddr = 0x591A40;
 constexpr uintptr_t SpawnPointInjectAddr = 0x591C70;
 constexpr uintptr_t SpawnPointEraseAddr = 0x591D20;
@@ -28,6 +30,11 @@ extern bool isHost;
 extern bool customSpawnsToggle;
 extern bool antiOOB;
 extern const char* curLevel;
+
+static constexpr double clamp(double v, double lo, double hi)
+{
+    return v < lo ? lo : v > hi ? hi : v;
+}
 
 struct Fetch {
     uint8_t unknownShit[8];
@@ -106,6 +113,9 @@ using AutoBalanceUpdateFn = void(__thiscall*)(void*);
 static AutoBalanceUpdateFn autoBalanceUpdate = nullptr;
 static bool balanceToggle = false;
 
+using SpawnPointScoreFn = double(__cdecl*)(void*, void*);
+static SpawnPointScoreFn spawnPointScore = nullptr;
+
 struct spawnCoords
 {
     float x;
@@ -149,7 +159,7 @@ static SpawnPointInitFn spawnPointInit = nullptr;
 using SpawnPointInjectFn = void* (__thiscall*)(void*, void*);
 static SpawnPointInjectFn spawnPointInject = reinterpret_cast<SpawnPointInjectFn>(SpawnPointInjectAddr);
 
-static void* spawnListTable = reinterpret_cast<void*>(0x75A5C8);
+static void* spawnListTable = reinterpret_cast<void*>(SpawnListTableAddr);
 
 using SpawnPointEraseFn = void* (__thiscall*)(void*, uint8_t);
 static SpawnPointEraseFn spawnPointErase = nullptr;

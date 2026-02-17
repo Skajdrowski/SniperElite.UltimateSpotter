@@ -376,6 +376,68 @@ static void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
 static std::vector<spawnCoords> customSpawns{};
 static std::atomic<uint32_t> customSpawnIndex{};
 static std::vector<void*> injectedSpawnPoints;
+static bool IsInjectedSpawnPoint(void* sp)
+{
+    if (!sp)
+        return false;
+
+    const uint32_t uid = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnPointOffset);
+    return (uid & 0xFFF00000u) == 0x06900000u;
+}
+
+#ifdef DEBUG_LOGGING
+static void PrintSpawnPoint(const char* tag, void* sp)
+{
+    if (!sp)
+    {
+        printf("%s sp=null\n", tag);
+        return;
+    }
+
+    const uint32_t uid = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnPointOffset);
+    const float x = *reinterpret_cast<float*>(reinterpret_cast<char*>(sp) + spawnPosXOffset);
+    const float y = *reinterpret_cast<float*>(reinterpret_cast<char*>(sp) + spawnPosYOffset);
+    const float z = *reinterpret_cast<float*>(reinterpret_cast<char*>(sp) + spawnPosZOffset);
+    const uint32_t posture = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnPostureOffset);
+    const uint32_t teamMask = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnTeamOffset);
+    const uint32_t modeMask = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnGameModeOffset);
+
+    printf("%s sp=0x%p uid=0x%08X inj=%d pos=(%.3f, %.3f, %.3f) posture=0x%X team=0x%X mode=0x%X\n",
+        tag,
+        sp,
+        uid,
+        IsInjectedSpawnPoint(sp) ? 1 : 0,
+        x, y, z,
+        posture,
+        teamMask,
+        modeMask);
+}
+#endif
+
+static double __cdecl SpawnPointScore_Detour(void* spawnPoint, void* actor)
+{
+    const double base = spawnPointScore(spawnPoint, actor);
+    if (IsInjectedSpawnPoint(spawnPoint))
+    {
+        const double boosted = clamp(base * 1.5, 1.1, 2.0);
+#ifdef DEBUG_LOGGING
+        printf("[SPAWN_SCORE] injected base=%.6f boosted=%.6f\n", base, boosted);
+        PrintSpawnPoint("[SPAWN_SCORE]", spawnPoint);
+#endif
+        return boosted;
+    }
+
+#ifdef DEBUG_LOGGING
+    {
+        //printf("[SPAWN_SCORE]============VANILLA============\n");
+        //printf("[SPAWN_SCORE] vanilla base=%.6f\n", base);
+        //PrintSpawnPoint("[SPAWN_SCORE]", spawnPoint);
+        //printf("[SPAWN_SCORE]=============VANILLA END=============\n");
+    }
+#endif
+    return base;
+}
+
 static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2, int** a3)
 {
     if (customSpawnsToggle)
@@ -613,6 +675,11 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(PlayerGetCoordsAddr),
         PlayerGetCoords_Detour,
         reinterpret_cast<void**>(&playerGetCoords)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(SpawnPointScoreAddr),
+        SpawnPointScore_Detour,
+        reinterpret_cast<void**>(&spawnPointScore)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(SpawnPointInitAddr),
