@@ -205,17 +205,29 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
         const playerCoords coords{ outVec3[2], outVec3[1], outVec3[0] };
         g_entityCoords[entityPtr] = coords;
 
-        if (antiOOB && strcmp(curLevel, "01a.pc") == 0)
-            if
-            (
-                IsInsideVolume(coords, { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }) // Sewers
-                || IsInsideVolume(coords, { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f }) // Lifting barrier
-            )
+        if (outVec3[1] >= 50.0f)
+        {
+            const auto uID = playerTouID.find(entityPtr);
+            if (uID != playerTouID.end())
+                fallDamage(1337.f, uID->second);
+        }
+
+        if (antiOOB)
+        {
+            const auto uID = playerTouID.find(entityPtr);
+            if (uID != playerTouID.end())
             {
-                const auto uID = playerTouID.find(entityPtr);
-                if (uID != playerTouID.end())
+                const bool entered =
+                    (strcmp(curLevel, "01a.pc") == 0 &&
+                        (IsInsideVolume(coords, { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }) // Sewers
+                        || IsInsideVolume(coords, { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f }))) // Lifting barrier
+                    || (strcmp(curLevel, "04a.pc") == 0 &&
+                        IsInsideVolume(coords, { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f })); // Neighbor room with invisible indoor walls
+
+                if (entered)
                     fallDamage(1337.f, uID->second);
             }
+        }
 #ifdef DEBUG_LOGGING
         //printf("entity=0x%p, coords=(%.3f, %.3f, %.3f)\n", entityPtr, outVec3[2], outVec3[1], outVec3[0]);
 #endif
