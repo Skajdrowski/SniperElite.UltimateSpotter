@@ -214,17 +214,17 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
 
         if (antiOOB)
         {
-            const auto uID = playerTouID.find(entityPtr);
-            if (uID != playerTouID.end())
-            {
-                const bool entered =
-                    (strcmp(curLevel, "01a.pc") == 0 &&
-                        (IsInsideVolume(coords, { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }) // Sewers
+            const bool entered =
+                (strcmp(curLevel, "01a.pc") == 0 &&
+                    (IsInsideVolume(coords, { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }) // Sewers
                         || IsInsideVolume(coords, { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f }))) // Lifting barrier
-                    || (strcmp(curLevel, "04a.pc") == 0 &&
-                        IsInsideVolume(coords, { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f })); // Neighbor room with invisible indoor walls
+                || (strcmp(curLevel, "04a.pc") == 0 &&
+                    IsInsideVolume(coords, { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f })); // Neighbor room with invisible indoor walls
 
-                if (entered)
+            if (entered)
+            {
+                const auto uID = playerTouID.find(entityPtr);
+                if (uID != playerTouID.end())
                     fallDamage(1337.f, uID->second);
             }
         }
