@@ -244,6 +244,18 @@ bool IsPointInsideRect(const POINT& pt, const RECT& rect)
     return pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom;
 }
 
+void ShrinkRectToTextWidth(RECT& rect, LPD3DXFONT font, const char* text, int paddingRight)
+{
+    if (!text || !font)
+        return;
+
+    RECT textSize = Render::GetTextSize(font, text);
+    const int textW = (std::max)(0, static_cast<int>(textSize.right - textSize.left));
+    const int desiredRight = rect.left + textW + paddingRight;
+    if (desiredRight < rect.right)
+        rect.right = desiredRight;
+}
+
 bool ProcessPromptInput()
 {
     if (g_activeTextField == TextFieldFocus::None)
@@ -1098,12 +1110,14 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
+                const char* autoBalanceLabel = "Disable TDM AutoBalance";
                 RECT checkboxLabelRect{
                     checkboxRect.right + 8,
                     y,
                     panelX + panelSize - padX,
                     y + checkboxSize
                 };
+                ShrinkRectToTextWidth(checkboxLabelRect, Render::Fonts::MenuText, autoBalanceLabel, 4);
 
                 const bool overCheckbox =
                     hasCursorPosition &&
@@ -1147,7 +1161,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     checkboxLabelRect.left,
                     checkboxLabelRect.top + 2,
                     0xFFFFFFFF,
-                    "Disable TDM AutoBalance"
+                    autoBalanceLabel
                 );
 
                 y += checkboxSize + 8;
@@ -1160,12 +1174,14 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
+                const char* antiOobLabel = "Anti Out of Bounds";
                 RECT antiCheckboxLabelRect{
                     antiCheckboxRect.right + 8,
                     y,
                     panelX + panelSize / 2 - 10,
                     y + checkboxSize
                 };
+                ShrinkRectToTextWidth(antiCheckboxLabelRect, Render::Fonts::MenuText, antiOobLabel, 4);
 
                 const bool overAntiCheckbox =
                     hasCursorPosition &&
@@ -1209,7 +1225,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     antiCheckboxLabelRect.left,
                     antiCheckboxLabelRect.top + 2,
                     0xFFFFFFFF,
-                    "Anti Out of Bounds"
+                    antiOobLabel
                 );
 
                 if (overAntiCheckbox)
@@ -1231,12 +1247,14 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
+                const char* customSpawnsLabel = "Custom spawns";
                 RECT customSpawnsCheckboxLabelRect{
                     customSpawnsCheckboxRect.right + 8,
                     y,
                     panelX + panelSize - padX,
                     y + checkboxSize
                 };
+                ShrinkRectToTextWidth(customSpawnsCheckboxLabelRect, Render::Fonts::MenuText, customSpawnsLabel, 4);
 
                 const bool overCustomSpawnsCheckbox =
                     hasCursorPosition &&
@@ -1281,7 +1299,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     customSpawnsCheckboxLabelRect.left,
                     customSpawnsCheckboxLabelRect.top + 2,
                     !customSpawnsAvailable ? 0xFF8A8A8A : 0xFFFFFFFF,
-                    "Custom spawns"
+                    customSpawnsLabel
                 );
 
                 if (overCustomSpawnsCheckbox && !customSpawnsAvailable)
@@ -1593,12 +1611,14 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
+                const char* knifeLabel = "Everyone has knife";
                 RECT checkboxLabelRect{
                     checkboxRect.right + 8,
                     y,
                     panelX + panelSize - padX,
                     y + checkboxSize
                 };
+                ShrinkRectToTextWidth(checkboxLabelRect, Render::Fonts::MenuText, knifeLabel, 4);
 
                 const bool overCheckbox =
                     hasCursorPosition &&
@@ -1642,7 +1662,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     checkboxLabelRect.left,
                     checkboxLabelRect.top + 2,
                     0xFFFFFFFF,
-                    "Everyone has knife"
+                    knifeLabel
                 );
             }
 
