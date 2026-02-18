@@ -545,6 +545,8 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
     bool promptVisibleThisFrame = false;
 
+    const char* checkMark = "X";
+
     if (isVisible)
     {
         const int screenWidth = viewport.right - viewport.left;
@@ -573,7 +575,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
             for (int i = 0; i < pageCount; ++i)
             {
-                const RECT btn{
+                RECT btn{
                     panelX + i * buttonW,
                     panelY,
                     panelX + (i + 1) * buttonW,
@@ -602,10 +604,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 if (i == 1)
                     sprintf(label, "PLAYER INVENTORIES");
 
-                if (i == 0)
-                    Render::Text(Render::Fonts::Tabs, btn.left + buttonW / 4 + 8, btn.top + toolbarH / 4 + 6, 0xFFFFFFFF, label);
-                if (i == 1)
-                    Render::Text(Render::Fonts::Tabs, btn.left + buttonW / 4 + 8, btn.top + toolbarH / 4 + 6, 0xFFFFFFFF, label);
+                Render::Fonts::Tabs->DrawTextA(label, -1, &btn, DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFFFFFFFF);
             }
 
             const int versionPad = 2;
@@ -936,11 +935,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     dangerW, dangerH,
                     0xFFFFFFFF);
 
-                Render::Text(Render::Fonts::MenuBold,
-                    kickRect.left + 20,
-                    kickRect.top + 7,
-                    0xFFFFFFFF,
-                    "KICK");
+                Render::Fonts::MenuBold->DrawTextA("KICK", -1, &kickRect, DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFFFFFFFF);
 
                 if (kickPressed)
                 {
@@ -1000,11 +995,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     dangerW, dangerH,
                     0xFFFFFFFF);
 
-                Render::Text(Render::Fonts::MenuBold,
-                    banRect.left + 20,
-                    banRect.top + 7,
-                    0xFFFFFFFF,
-                    "BAN");
+                Render::Fonts::MenuBold->DrawTextA("BAN", -1, &banRect, DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFFFFFFFF);
 
                 if (banPressed)
                 {
@@ -1065,11 +1056,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     dangerW, dangerH,
                     0xFFFFFFFF);
 
-                Render::Text(Render::Fonts::MenuBold,
-                    unbanRect.left + 16,
-                    unbanRect.top + 7,
-                    0xFFFFFFFF,
-                    "UNBAN");
+                Render::Fonts::MenuBold->DrawTextA("UNBAN", -1, &unbanRect, DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFFFFFFFF);
 
                 if (unbanPressed)
                 {
@@ -1156,15 +1143,9 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     0xFFFFFFFF
                 );
                 if (balanceToggle)
-                {
-                    Render::Text(
-                        Render::Fonts::MenuTabs,
-                        checkboxRect.left + 4,
-                        checkboxRect.top + 1,
-                        0xFF7CFC00,
-                        "X"
-                    );
-                }
+                    Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &checkboxRect,
+                        DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFF7CFC00);
+
                 Render::Text(
                     Render::Fonts::MenuText,
                     checkboxLabelRect.left,
@@ -1183,7 +1164,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
-                const char* antiOobLabel = "Anti Out of Bounds";
+                const char* antiOobLabel = "Anti OOB";
                 RECT antiCheckboxLabelRect{
                     antiCheckboxRect.right + 8,
                     y,
@@ -1220,15 +1201,9 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     0xFFFFFFFF
                 );
                 if (antiOOB)
-                {
-                    Render::Text(
-                        Render::Fonts::MenuTabs,
-                        antiCheckboxRect.left + 4,
-                        antiCheckboxRect.top + 1,
-                        0xFF7CFC00,
-                        "X"
-                    );
-                }
+                    Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &antiCheckboxRect,
+                        DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFF7CFC00);
+
                 Render::Text(
                     Render::Fonts::MenuText,
                     antiCheckboxLabelRect.left,
@@ -1294,15 +1269,9 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     !customSpawnsAvailable ? 0xFF666666 : 0xFFFFFFFF
                 );
                 if (customSpawnsToggle)
-                {
-                    Render::Text(
-                        Render::Fonts::MenuTabs,
-                        customSpawnsCheckboxRect.left + 4,
-                        customSpawnsCheckboxRect.top + 1,
-                        !customSpawnsAvailable ? 0xFF6B6B6B : 0xFF7CFC00,
-                        "X"
-                    );
-                }
+                    Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &customSpawnsCheckboxRect,
+                        DT_VCENTER | DT_CENTER | DT_NOCLIP, !customSpawnsAvailable ? 0xFF6B6B6B : 0xFF7CFC00);
+
                 Render::Text(
                     Render::Fonts::MenuText,
                     customSpawnsCheckboxLabelRect.left,
@@ -1408,11 +1377,8 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     saveW, bottomH,
                     0xFFFFFFFF);
 
-                Render::Text(Render::Fonts::MenuBold,
-                    saveRect.left + 12,
-                    saveRect.top + 11,
-                    0xFFFFFFFF,
-                    "Copy to Clipboard");
+                Render::Fonts::MenuBold->DrawTextA("Copy to Clipboard", -1, &saveRect,
+                    DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFFFFFFFF);
             }
 
             // =====================================================
@@ -1613,7 +1579,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 const int checkboxSize = 18;
                 const int checkboxLabelOffset = 28;
 
-                RECT checkboxRect{
+                RECT knifeCheckboxRect{
                     panelX + padX,
                     y,
                     panelX + padX + checkboxSize,
@@ -1621,18 +1587,18 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 };
 
                 const char* knifeLabel = "Everyone has knife";
-                RECT checkboxLabelRect{
-                    checkboxRect.right + 8,
+                RECT knifeCheckboxLabelRect{
+                    knifeCheckboxRect.right + 8,
                     y,
                     panelX + panelSize - padX,
                     y + checkboxSize
                 };
-                ShrinkRectToTextWidth(checkboxLabelRect, Render::Fonts::MenuText, knifeLabel, 4);
+                ShrinkRectToTextWidth(knifeCheckboxLabelRect, Render::Fonts::MenuText, knifeLabel, 4);
 
                 const bool overCheckbox =
                     hasCursorPosition &&
-                    (IsPointInsideRect(cursorPosition, checkboxRect) ||
-                        IsPointInsideRect(cursorPosition, checkboxLabelRect));
+                    (IsPointInsideRect(cursorPosition, knifeCheckboxRect) ||
+                        IsPointInsideRect(cursorPosition, knifeCheckboxLabelRect));
 
                 if (mousePressedThisFrame && overCheckbox)
                 {
@@ -1642,34 +1608,28 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 Render::Draw(
                     g_pd3dDevice,
-                    checkboxRect.left,
-                    checkboxRect.top,
+                    knifeCheckboxRect.left,
+                    knifeCheckboxRect.top,
                     checkboxSize,
                     checkboxSize,
                     overCheckbox ? 0xFF2F4F8F : 0xFF1E1E1E
                 );
                 Render::Outline(
                     g_pd3dDevice,
-                    checkboxRect.left,
-                    checkboxRect.top,
+                    knifeCheckboxRect.left,
+                    knifeCheckboxRect.top,
                     checkboxSize,
                     checkboxSize,
                     0xFFFFFFFF
                 );
                 if (g_everyoneHasKnife)
-                {
-                    Render::Text(
-                        Render::Fonts::MenuTabs,
-                        checkboxRect.left + 4,
-                        checkboxRect.top + 1,
-                        0xFF7CFC00,
-                        "X"
-                    );
-                }
+                    Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &knifeCheckboxRect,
+                        DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFF7CFC00);
+
                 Render::Text(
                     Render::Fonts::MenuText,
-                    checkboxLabelRect.left,
-                    checkboxLabelRect.top + 2,
+                    knifeCheckboxLabelRect.left,
+                    knifeCheckboxLabelRect.top + 2,
                     0xFFFFFFFF,
                     knifeLabel
                 );
