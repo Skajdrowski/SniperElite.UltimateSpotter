@@ -608,6 +608,15 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     Render::Text(Render::Fonts::Tabs, btn.left + buttonW / 4 + 8, btn.top + toolbarH / 4 + 6, 0xFFFFFFFF, label);
             }
 
+            const int versionPad = 2;
+            RECT versionRect{
+                panelX + versionPad,
+                panelY + versionPad,
+                panelX + panelSize - versionPad,
+                panelY + panelSize - versionPad
+            };
+            Render::Fonts::MenuBold->DrawTextA("Ultimate Spotter v1.1", -1, &versionRect, DT_RIGHT | DT_BOTTOM | DT_NOCLIP, 0xFF037d50);
+
             // =====================================================
             // CONTENT AREA
             // =====================================================

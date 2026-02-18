@@ -10,7 +10,6 @@ namespace Render
 		LPD3DXFONT MenuBold;
 		LPD3DXFONT MenuText;
 		LPD3DXFONT MenuTabs;
-		LPD3DXFONT Text;
 		LPD3DXFONT Clock;
 		LPD3DXFONT Tabs;
 	};
@@ -285,7 +284,6 @@ void Render::Shutdown()
 	releaseFont(Fonts::MenuBold);
 	releaseFont(Fonts::MenuText);
 	releaseFont(Fonts::MenuTabs);
-	releaseFont(Fonts::Text);
 	releaseFont(Fonts::Clock);
 	releaseFont(Fonts::Tabs);
 }

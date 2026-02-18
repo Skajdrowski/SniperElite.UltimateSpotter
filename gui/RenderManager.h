@@ -34,7 +34,6 @@ namespace Render
 		extern LPD3DXFONT MenuBold;
 		extern LPD3DXFONT MenuText;
 		extern LPD3DXFONT MenuTabs;
-		extern LPD3DXFONT Text;
 		extern LPD3DXFONT Clock;
 		extern LPD3DXFONT Tabs;
 	};
