@@ -69,6 +69,18 @@ static int WSAAPI bind_Detour(SOCKET s, const sockaddr* name, int namelen)
 }
 #endif
 
+static uint8_t __cdecl ChatCooldown_Detour(uint32_t key)
+{
+	const uint8_t result = chatCooldown(key);
+
+    float* gCooldown = (float*)0x78A8EC;
+
+    if (key == 13 && gCooldown)
+        *gCooldown = 1.0f;
+
+    return result;
+}
+
 std::map<uint32_t, void*> uIdToPlayer;
 static std::unordered_map<void*, uint32_t> playerTouID;
 static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, uint32_t uID, int a3, int a4)
@@ -231,7 +243,7 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
             if (strcmp(curLevel, "04a.pc") == 0)
                 activeOOB = &ubahnOOBs;
 
-            if (activeOOB == nullptr)
+            if (!activeOOB)
                 return;
 
             for (uint32_t i = 0; i + 1 < activeOOB->size(); i += 2)
@@ -661,6 +673,11 @@ static void Init()
     if (MH_CreateHookApi(L"WSOCK32.dll", "bind", reinterpret_cast<void*>(&bind_Detour), reinterpret_cast<void**>(&WS2bind)) != MH_OK)
         return;
 #endif
+    if (MH_CreateHook(reinterpret_cast<void*>(ChatCooldownAddr),
+        ChatCooldown_Detour,
+        reinterpret_cast<void**>(&chatCooldown)) != MH_OK)
+		return;
+
     if (MH_CreateHook(reinterpret_cast<void*>(DirectInputAddr),
         DirectInput_Detour,
         reinterpret_cast<void**>(&directInput)) != MH_OK)

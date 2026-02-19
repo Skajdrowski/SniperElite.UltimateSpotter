@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <string>
 
+constexpr uintptr_t ChatCooldownAddr = 0x4832D0;
 constexpr uintptr_t OperatorNewAddr = 0x6A6322;
 constexpr uintptr_t DirectInputAddr = 0x40AC10;
 constexpr uintptr_t PlayerFetchAddr = 0x6080C0;
@@ -35,6 +36,9 @@ static constexpr double clamp(double v, double lo, double hi)
 {
     return v < lo ? lo : v > hi ? hi : v;
 }
+
+using ChatCooldownFn = uint8_t(__cdecl*)(uint32_t key);
+static ChatCooldownFn chatCooldown = nullptr;
 
 struct Fetch {
     uint8_t unknownShit[8];
