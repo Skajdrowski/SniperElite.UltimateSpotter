@@ -193,6 +193,15 @@ static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
     return playerFetch(fetchStruct);
 }
 
+const std::vector<playerCoords> karlshorstOOBs = {
+    { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }, // Sewers
+    { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f } // Lifting barrier
+};
+const std::vector<playerCoords> ubahnOOBs = {
+    { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f }, // Neighbor room with invisible indoor walls
+    { -46.2f, -1.34f, 48.f }, { -17.5f, 0.f, 80.f } // Right side from the roof spawn near railings
+};
+
 static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, float* outVec3)
 {
     void* entityPtr = nullptr;
@@ -214,18 +223,33 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
 
         if (antiOOB)
         {
-            const bool entered =
-                (strcmp(curLevel, "01a.pc") == 0 &&
-                    (IsInsideVolume(coords, { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }) // Sewers
-                        || IsInsideVolume(coords, { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f }))) // Lifting barrier
-                || (strcmp(curLevel, "04a.pc") == 0 &&
-                    IsInsideVolume(coords, { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f })); // Neighbor room with invisible indoor walls
+            const std::vector<playerCoords>* activeOOB = nullptr;
+            bool entered = false;
+
+            if (strcmp(curLevel, "01a.pc") == 0)
+                activeOOB = &karlshorstOOBs;
+            if (strcmp(curLevel, "04a.pc") == 0)
+                activeOOB = &ubahnOOBs;
+
+            if (activeOOB == nullptr)
+                return;
+
+            for (uint32_t i = 0; i + 1 < activeOOB->size(); i += 2)
+            {
+                if (IsInsideVolume(coords, (*activeOOB)[i], (*activeOOB)[i + 1]))
+                {
+                    entered = true;
+                    break;
+                }
+            }
 
             if (entered)
             {
                 const auto uID = playerTouID.find(entityPtr);
                 if (uID != playerTouID.end())
                     fallDamage(1337.f, uID->second);
+
+                entered = false;
             }
         }
 #ifdef DEBUG_LOGGING
