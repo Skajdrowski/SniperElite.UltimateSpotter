@@ -164,7 +164,7 @@ static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
 {
     isPopulated = (fetchStruct->uID > 0);
     void* playerObject = uIdToPlayer.count(fetchStruct->uID) ? uIdToPlayer[fetchStruct->uID] : nullptr;
-    void* inventoryPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
+    void* inventoryPtr = isHost ? *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8) : nullptr;
 
     const std::wstring nameKey = fetchStruct->nickname;
     PlayerFetchEntry& entry = g_playerDirectory[nameKey];
