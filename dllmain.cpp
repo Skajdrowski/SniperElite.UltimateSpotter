@@ -71,7 +71,7 @@ static int WSAAPI bind_Detour(SOCKET s, const sockaddr* name, int namelen)
 
 static uint8_t __cdecl ChatCooldown_Detour(uint32_t key)
 {
-	const uint8_t result = chatCooldown(key);
+    const uint8_t result = chatCooldown(key);
 
     float* gCooldown = (float*)0x78A8EC;
 
@@ -89,11 +89,11 @@ static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown 
     void* ThisPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
 #ifdef DEBUG_LOGGING
     printf("PlayerConstructor called for uID=%d, playerObject=0x%p\n", uID, playerObject);
-	printf("Extracted inventory pointer: 0x%p\n", ThisPtr);
+    printf("Extracted inventory pointer: 0x%p\n", ThisPtr);
 #endif
 
     uIdToPlayer[uID] = playerObject;
-	playerTouID[playerObject] = uID;
+    playerTouID[playerObject] = uID;
 
     return playerObject;
 }
@@ -108,7 +108,7 @@ static void __cdecl PlayerJoinIPMap_Callback(uint32_t uID, uint32_t ip)
     inet_ntop(AF_INET, &addr, ipStr, INET_ADDRSTRLEN);
     g_uIdToIp[uID] = ipStr;
 #ifdef DEBUG_LOGGING
-	printf("PlayerJoinSend: Mapped uID %d to IP %s\n", uID, ipStr);
+    printf("PlayerJoinSend: Mapped uID %d to IP %s\n", uID, ipStr);
 #endif
 }
 
@@ -409,27 +409,27 @@ static void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
     return;
 }
 
-static std::vector<spawnCoords> customSpawns{};
-static std::atomic<uint32_t> customSpawnIndex{};
 static std::vector<void*> injectedSpawnPoints;
 static bool IsInjectedSpawnPoint(void* sp)
 {
-    if (!sp)
-        return false;
-
     const uint32_t uid = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnPointOffset);
     return (uid & 0xFFF00000u) == 0x06900000u;
+}
+
+static bool __fastcall SpawnPointEligible_Detour(void* self, void* /*edx*/, void* actor)
+{
+    if (IsInjectedSpawnPoint(self))
+    {
+        float& cooldown = *reinterpret_cast<float*>(reinterpret_cast<char*>(self) + spawnCooldownOffset);
+        if (cooldown < 5.0f)
+            cooldown = 69.0f;
+    }
+    return spawnPointEligible(self, actor);
 }
 
 #ifdef DEBUG_LOGGING
 static void PrintSpawnPoint(const char* tag, void* sp)
 {
-    if (!sp)
-    {
-        printf("%s sp=null\n", tag);
-        return;
-    }
-
     const uint32_t uid = *reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(sp) + spawnPointOffset);
     const float x = *reinterpret_cast<float*>(reinterpret_cast<char*>(sp) + spawnPosXOffset);
     const float y = *reinterpret_cast<float*>(reinterpret_cast<char*>(sp) + spawnPosYOffset);
@@ -455,7 +455,7 @@ static double __cdecl SpawnPointScore_Detour(void* spawnPoint, void* actor)
     const double base = spawnPointScore(spawnPoint, actor);
     if (IsInjectedSpawnPoint(spawnPoint))
     {
-        const double boosted = clamp(base * 1.5, 1.1, 2.0);
+        const double boosted = clamp(base * 1.5, 0.5, 1.0);
 #ifdef DEBUG_LOGGING
         printf("[SPAWN_SCORE] injected base=%.6f boosted=%.6f\n", base, boosted);
         PrintSpawnPoint("[SPAWN_SCORE]", spawnPoint);
@@ -474,33 +474,33 @@ static double __cdecl SpawnPointScore_Detour(void* spawnPoint, void* actor)
     return base;
 }
 
+const std::vector<spawnCoords> fuelDumpSpawns = {
+    { 107.83f, -6.45f, -89.65f, russia, crouch },
+    { 257.8721008f, 9.7f, -137.5167542f, germany, crouch }
+};
+const std::vector<spawnCoords> ubahnSpawns = {
+    { -55.64f, -15.5f, -71.16f, russia, prone },
+    { 76.52f, -15.2f, -80.22f, germany, prone },
+    { -37.73f, -15.5f, 54.42f, russia, prone },
+    { 40.64f, -15.71f, -39.19f, germany, prone }
+};
+const std::vector<spawnCoords> tempelhofSpawns = {
+    { 95.72f, -7.48f, 27.88f, russia, stand },
+    { -98.89f, -19.11f, -40.56f, germany, prone }
+};
+
+static const std::vector<spawnCoords>* activeSpawns = nullptr;
+static bool spawnsInjected = false;
 static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2, int** a3)
 {
     if (customSpawnsToggle)
     {
         if (strcmp(curLevel, "01b.pc") == 0)
-        {
-            customSpawns = {
-                { 107.83f, -6.45f, -89.65f, russia, crouch },
-                { 257.8721008f, 9.7f, -137.5167542f, germany, crouch }
-            };
-        }
+            activeSpawns = &fuelDumpSpawns;
         if (strcmp(curLevel, "04a.pc") == 0)
-        {
-            customSpawns = {
-                { -55.64f, -15.5f, -71.16f, russia, prone },
-                { 76.52f, -15.2f, -80.22f, germany, prone },
-                { -37.73f, -15.5f, 54.42f, russia, prone },
-                { 40.64f, -15.71f, -39.19f, germany, prone }
-            };
-        }
+            activeSpawns = &ubahnSpawns;
         if (strcmp(curLevel, "08d.pc") == 0)
-        {
-            customSpawns = {
-                { 95.72f, -7.48f, 27.88f, russia, stand },
-                { -98.89f, -19.11f, -40.56f, germany, prone }
-            };
-        }
+            activeSpawns = &tempelhofSpawns;
     }
 
     static bool isInHook = false;
@@ -510,26 +510,23 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
     isInHook = true;
 
     void* sp = spawnPointInit(self, a2, a3);
-    if (!sp)
-    {
-        isInHook = false;
-        return sp;
-    }
 
-    if (!customSpawns.empty())
+    if (activeSpawns && !spawnsInjected)
     {
         uint32_t origuID = *(uint32_t*)((char*)sp + spawnPointOffset);
-        static std::atomic<uint32_t> injecteduID{ 0x06900000u };
+        static uint32_t injecteduID = 0x06900000u;
 
-        static std::atomic<bool> s_seeded{ false };
-        bool expected = false;
-        if (s_seeded.compare_exchange_strong(expected, true, std::memory_order_relaxed))
+        static bool s_seeded = false;
+
+        if (!s_seeded)
         {
+            s_seeded = true;
+
             uint32_t seed = 0x6900000u | (origuID & 0xFFFFFu);
             if (seed == 0x6900000u)
                 seed = 0x6900001u;
 
-            injecteduID.store(seed, std::memory_order_relaxed);
+            injecteduID = seed;
         }
 
         auto emitSpawn = [&](const spawnCoords entry, uint32_t modeMask, uint32_t teamMask)
@@ -540,8 +537,7 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
 
                 memcpy(newSpawn, sp, spawnPointSize);
 
-                uint32_t newuID =
-                    injecteduID.fetch_add(1, std::memory_order_relaxed) + 1;
+                uint32_t newuID = ++injecteduID;
 
                 *(uint32_t*)((char*)newSpawn + spawnPointOffset) = newuID;
                 *(float*)((char*)newSpawn + spawnPosXOffset) = entry.x;
@@ -561,13 +557,10 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
                 injectedSpawnPoints.push_back(newSpawn);
             };
 
-        uint32_t idx = customSpawnIndex.fetch_add(1, std::memory_order_relaxed);
-        if (idx < customSpawns.size())
-        {
-            const spawnCoords& entry = customSpawns[idx];
-            emitSpawn(entry, 0x8, 0x1);
-            emitSpawn(entry, 0x10, entry.teamMask);
-        }
+        for (const auto& entry : *activeSpawns)
+            emitSpawn(entry, 0x18, entry.teamMask);
+
+        spawnsInjected = true;
     }
 
     isInHook = false;
@@ -576,13 +569,8 @@ static void* __fastcall SpawnPointInit_Detour(void* self, void* /*edx*/, int a2,
 
 static void* __fastcall SpawnPointErase_Detour(void* self, void* /*edx*/, uint8_t flags)
 {
-    static bool s_inCleanup = false;
-    if (s_inCleanup)
-        return spawnPointErase(self, flags);
-
-    if (!injectedSpawnPoints.empty())
+    if (spawnsInjected)
     {
-        s_inCleanup = true;
         std::vector<void*> toDelete;
         toDelete.swap(injectedSpawnPoints);
 
@@ -597,9 +585,8 @@ static void* __fastcall SpawnPointErase_Detour(void* self, void* /*edx*/, uint8_
             spawnPointErase(sp, 1);
         }
 
-        customSpawnIndex.store(0, std::memory_order_relaxed);
-        customSpawns.clear();
-        s_inCleanup = false;
+        activeSpawns = nullptr;
+        spawnsInjected = false;
     }
 
     return spawnPointErase(self, flags);
@@ -676,7 +663,7 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(ChatCooldownAddr),
         ChatCooldown_Detour,
         reinterpret_cast<void**>(&chatCooldown)) != MH_OK)
-		return;
+        return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(DirectInputAddr),
         DirectInput_Detour,
@@ -731,6 +718,11 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(SpawnPointEraseAddr),
         SpawnPointErase_Detour,
         reinterpret_cast<void**>(&spawnPointErase)) != MH_OK)
+        return;
+
+    if (MH_CreateHook(reinterpret_cast<void*>(SpawnPointEligibleAddr),
+        SpawnPointEligible_Detour,
+        reinterpret_cast<void**>(&spawnPointEligible)) != MH_OK)
         return;
 
     MH_EnableHook(MH_ALL_HOOKS);

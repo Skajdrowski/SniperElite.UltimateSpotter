@@ -26,6 +26,7 @@ constexpr uintptr_t SpawnListTableAddr = 0x75A5C8;
 constexpr uintptr_t SpawnPointInitAddr = 0x591A40;
 constexpr uintptr_t SpawnPointInjectAddr = 0x591C70;
 constexpr uintptr_t SpawnPointEraseAddr = 0x591D20;
+constexpr uintptr_t SpawnPointEligibleAddr = 0x591700;
 
 extern bool isHost;
 extern bool customSpawnsToggle;
@@ -120,6 +121,9 @@ static bool balanceToggle = false;
 using SpawnPointScoreFn = double(__cdecl*)(void*, void*);
 static SpawnPointScoreFn spawnPointScore = nullptr;
 
+using SpawnPointEligibleFn = bool(__thiscall*)(void*, void*);
+static SpawnPointEligibleFn spawnPointEligible = nullptr;
+
 struct spawnCoords
 {
     float x;
@@ -147,12 +151,12 @@ enum posture
 constexpr size_t spawnTeamOffset = 0x30;
 enum team
 {
-    germany = 0x2,
-    russia = 0x4
+    germany = 0x3,
+    russia = 0x5
 };
 
 constexpr size_t spawnGameModeOffset = 0x34;
-
+constexpr size_t spawnCooldownOffset = 0x38; // float, compared against 5.0 in eligibility gate
 
 using OperatorNewFn = void* (__cdecl*)(size_t);
 static OperatorNewFn operatorNew = reinterpret_cast<OperatorNewFn>(OperatorNewAddr);
