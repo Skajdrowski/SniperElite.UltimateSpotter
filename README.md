@@ -1,10 +1,10 @@
 # Ultimate Spotter for Sniper Elite
-(Originally knowns as "spotter") An ASI script to moderate online lobbies in Sniper Elite.
+(Originally known as "spotter") An ASI script to moderate online lobbies in Sniper Elite.
 
-Currently this one offers additional feature of managing player inventories (Some stuff might not work as intended. Everything is experimental)
+Currently this one offers additional feature of managing player inventories (Some stuff might not work as intended)
 
 ## How to install
-Extract .7z content into game files (eg. C:\Program Files\Steam\steamapps\common\SniperElite) and run the game.
+Extract .7z content (2 files) into game files (eg. C:\Program Files\Steam\steamapps\common\SniperElite) and run the game.
 
 If you already have installed Widescreen fix mod, all you have to do is drop .asi file either into the root folder or scripts folder.
 
