@@ -112,7 +112,7 @@ static void __cdecl PlayerJoinIPMap_Callback(uint32_t uID, uint32_t ip)
 #endif
 }
 
-static int __cdecl PlayerJoinSend_Detour(int connPtr, int msgPtr)
+static int __cdecl IPJoinSend_Detour(int connPtr, int msgPtr)
 {
     if (_ReturnAddress() == reinterpret_cast<void*>(0x446CC0))
     {
@@ -129,7 +129,7 @@ static int __cdecl PlayerJoinSend_Detour(int connPtr, int msgPtr)
         }
     }
 
-    return playerJoinSend(connPtr, msgPtr);
+    return ipJoinSend(connPtr, msgPtr);
 }
 
 bool banIpAddress(const std::string& ipAddress)
@@ -142,17 +142,11 @@ bool banIpAddress(const std::string& ipAddress)
 }
 bool unBanIpAddress(const std::string& ipAddress)
 {
-    if (!g_bannedIpAddresses.contains(ipAddress))
-        return false;
-
     return g_bannedIpAddresses.erase(ipAddress);
 }
 bool isIpAddressBanned(const std::string& ipAddress)
 {
-    if (ipAddress.empty())
-        return false;
-
-    return g_bannedIpAddresses.count(ipAddress) > 0;
+    return !ipAddress.empty() && g_bannedIpAddresses.count(ipAddress) > 0;
 }
 
 std::map<std::wstring, PlayerFetchEntry> g_playerDirectory;
@@ -675,9 +669,9 @@ static void Init()
         reinterpret_cast<void**>(&playerConstructor)) != MH_OK)
         return;
 
-    if (MH_CreateHook(reinterpret_cast<void*>(PlayerJoinSendAddr),
-        PlayerJoinSend_Detour,
-        reinterpret_cast<void**>(&playerJoinSend)) != MH_OK)
+    if (MH_CreateHook(reinterpret_cast<void*>(IPJoinSendAddr),
+        IPJoinSend_Detour,
+        reinterpret_cast<void**>(&ipJoinSend)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(PlayerFetchAddr),
