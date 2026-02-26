@@ -1154,6 +1154,74 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     autoBalanceLabel
                 );
 
+                // Enable 19in1 checkmark
+                RECT enableMapsCheckboxRect{
+                    panelX + panelSize / 2,
+                    y,
+                    panelX + panelSize / 2 + checkboxSize,
+                    y + checkboxSize
+                };
+
+                const char* enableMapsLabel = "Enable 19in1 maps";
+                RECT enableMapsCheckboxLabelRect{
+                    enableMapsCheckboxRect.right + 8,
+                    y,
+                    panelX + panelSize - padX,
+                    y + checkboxSize
+                };
+                ShrinkRectToTextWidth(enableMapsCheckboxLabelRect, Render::Fonts::MenuText, enableMapsLabel, 4);
+
+                const bool overEnableMapsCheckbox =
+                    hasCursorPosition &&
+                    (IsPointInsideRect(cursorPosition, enableMapsCheckboxRect) ||
+                        IsPointInsideRect(cursorPosition, enableMapsCheckboxLabelRect));
+
+                if (mousePressedThisFrame && overEnableMapsCheckbox)
+                {
+                    unlockMaps = !unlockMaps;
+                    listMaps();
+                    g_guiDirty = true;
+                }
+
+                Render::Draw(
+                    g_pd3dDevice,
+                    enableMapsCheckboxRect.left,
+                    enableMapsCheckboxRect.top,
+                    checkboxSize,
+                    checkboxSize,
+                    overEnableMapsCheckbox ? 0xFF2F4F8F : 0xFF1E1E1E
+                );
+                Render::Outline(
+                    g_pd3dDevice,
+                    enableMapsCheckboxRect.left,
+                    enableMapsCheckboxRect.top,
+                    checkboxSize,
+                    checkboxSize,
+                    0xFFFFFFFF
+                );
+                if (unlockMaps)
+                    Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &enableMapsCheckboxRect,
+                        DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFF7CFC00);
+
+                Render::Text(
+                    Render::Fonts::MenuText,
+                    enableMapsCheckboxLabelRect.left,
+                    enableMapsCheckboxLabelRect.top + 2,
+                    0xFFFFFFFF,
+                    enableMapsLabel
+                );
+
+                if (overEnableMapsCheckbox)
+                {
+                    Render::Text(
+                        Render::Fonts::MenuText,
+                        enableMapsCheckboxLabelRect.left,
+                        enableMapsCheckboxLabelRect.top - 2 - checkboxSize,
+                        0xFFAAAAAA,
+                        "Toggle this only if you have 19in1 installed!"
+                    );
+                }
+
                 y += checkboxSize + 8;
 
                 // Anti OOB checkmark
@@ -1248,7 +1316,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 if (mousePressedThisFrame && overCustomSpawnsCheckbox && customSpawnsAvailable)
                 {
-                    customSpawnsToggle = !customSpawnsToggle;
+                    customSpawns = !customSpawns;
                     g_guiDirty = true;
                 }
 
@@ -1268,7 +1336,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     checkboxSize,
                     !customSpawnsAvailable ? 0xFF666666 : 0xFFFFFFFF
                 );
-                if (customSpawnsToggle)
+                if (customSpawns)
                     Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &customSpawnsCheckboxRect,
                         DT_VCENTER | DT_CENTER | DT_NOCLIP, !customSpawnsAvailable ? 0xFF6B6B6B : 0xFF7CFC00);
 

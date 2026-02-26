@@ -27,11 +27,18 @@ constexpr uintptr_t SpawnPointInitAddr = 0x591A40;
 constexpr uintptr_t SpawnPointInjectAddr = 0x591C70;
 constexpr uintptr_t SpawnPointEraseAddr = 0x591D20;
 constexpr uintptr_t SpawnPointEligibleAddr = 0x591700;
+constexpr uintptr_t MpMapTableBaseAddr = 0x757B28;
 
 extern bool isHost;
-extern bool customSpawnsToggle;
-extern bool antiOOB;
 extern const char* curLevel;
+extern bool customSpawns;
+extern bool antiOOB;
+extern bool unlockMaps;
+
+extern void listMaps();
+constexpr size_t MpMapRecordSize = 0x28;
+constexpr size_t MpMapRecordCount = 34;
+constexpr size_t MpMapRecordFlagsOffset = 0x20;
 
 static constexpr double clamp(double v, double lo, double hi)
 {
