@@ -1,5 +1,5 @@
 # Ultimate Spotter for Sniper Elite
-(Originally known as "spotter") An ASI script to moderate online lobbies in Sniper Elite.
+(Originally known as "spotter") An ASI script to moderate online lobbies in Sniper Elite (**Steam version only**)
 
 Currently this one offers additional feature of managing player inventories (Some stuff might not work as intended)
 
