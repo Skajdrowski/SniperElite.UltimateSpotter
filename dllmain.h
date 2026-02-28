@@ -17,7 +17,6 @@ constexpr uintptr_t PlayerConstructorAddr = 0x56F390;
 constexpr uintptr_t PlayerGetCoordsAddr = 0x533880;
 constexpr uintptr_t FallDamageAddr = 0x525770;
 constexpr uintptr_t InventoryAssignAddr = 0x519C90;
-constexpr uintptr_t InventoryCapAddr = 0x511420;
 constexpr uintptr_t KickPlayerAddr = 0x454610;
 constexpr uintptr_t AutoBalanceUpdateAddr = 0x617E20;
 constexpr uintptr_t LoadingFlagAddr = 0x7A35A9;
@@ -118,9 +117,6 @@ extern bool g_everyoneHasKnife;
 extern bool g_loadoutPresetsEnabled;
 extern uint32_t g_selectedLoadoutPresetIndex;
 
-using InventoryCapFn = uint32_t(__cdecl*)(uint32_t);
-static InventoryCapFn inventoryCap = nullptr;
-
 using AutoBalanceUpdateFn = void(__thiscall*)(void*);
 static AutoBalanceUpdateFn autoBalanceUpdate = nullptr;
 static bool balanceToggle = false;
@@ -156,10 +152,10 @@ enum posture
 };
 
 constexpr size_t spawnTeamOffset = 0x30;
-enum team
+enum teamSpawnMask
 {
-    germany = 0x3,
-    russia = 0x5
+    germanySpawn = 0x3,
+    russiaSpawn = 0x5
 };
 
 constexpr size_t spawnGameModeOffset = 0x34;

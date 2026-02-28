@@ -1,6 +1,7 @@
 #include "dllmain.h"
 #include "dxHook.h"
 #include "MinHook.h"
+#include <random>
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -12,6 +13,9 @@
 #ifndef _countof
 #define _countof(arr) (sizeof(arr) / sizeof((arr)[0]))
 #endif
+
+std::random_device rng;
+std::mt19937 gen(rng());
 
 bool isHost = false;
 const char* curLevel = nullptr;
@@ -87,10 +91,10 @@ static std::unordered_map<void*, uint32_t> playerTouID;
 static void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, uint32_t uID, int a3, int a4)
 {
     void* playerObject = playerConstructor(thisPtr, uID, a3, a4);
-    void* ThisPtr = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
 #ifdef DEBUG_LOGGING
+    void* playerInventory = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8);
     printf("PlayerConstructor called for uID=%d, playerObject=0x%p\n", uID, playerObject);
-    printf("Extracted inventory pointer: 0x%p\n", ThisPtr);
+    printf("Extracted inventory pointer: 0x%p\n", playerInventory);
 #endif
 
     uIdToPlayer[uID] = playerObject;
@@ -155,11 +159,15 @@ bool isPopulated = false;
 wchar_t greetBuffer[36];
 static std::unordered_map<void*, playerCoords> g_entityCoords;
 static std::unordered_set<void*> g_activeEntities;
+static std::unordered_map<void*, void*> inventoryToPlayer;
 static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
 {
     isPopulated = (fetchStruct->uID > 0);
     void* playerObject = uIdToPlayer.count(fetchStruct->uID) ? uIdToPlayer[fetchStruct->uID] : nullptr;
     void* inventoryPtr = isHost ? *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(playerObject) + 0x1E8) : nullptr;
+
+    if (inventoryPtr)
+        inventoryToPlayer[inventoryPtr] = playerObject;
 
     const std::wstring nameKey = fetchStruct->nickname;
     PlayerFetchEntry& entry = g_playerDirectory[nameKey];
@@ -202,11 +210,26 @@ static uint32_t __cdecl PlayerFetch_Detour(Fetch* fetchStruct)
 
 const std::vector<playerCoords> karlshorstOOBs = {
     { -120.52f, -2.44f, -22.8f }, { -119.5f, -1.3f, 4.2f }, // Sewers
-    { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f } // Lifting barrier
+    { -239.8f, -2.625f, 149.85f }, { -212.4f, -1.5f, 157.f }, // Lifting barrier
+    { -104.35f, -1.35f, 4.7f }, { -101.f, -0.2f, 7.f }, // A hole in the wall, near Sewers
+    { -183.f, -10.55f, -41.f }, { -179.5f, -5.f, -26.6f } // Broken ceiling
+};
+const std::vector<playerCoords> safehouseOOBs = {
+    { -55.7f, -3.85f, 71.f }, { -53.1f, 2.f, 72.1f }, // Broken window
+    { -52.6f, 0.84f, 48.7f }, { -49.1f, 2.2f, 62.83f }, // Entrance's roof to the safehouse
+    { -44.f, 5.2f, -33.7f }, { -34.7f, 8.1f, -29.5f } // Barrier with laying steel beam
+};
+const std::vector<playerCoords> missingContactOOBs = {
+    { -105.f, -2.9f, -142.5f }, { -102.f, -1.2f, -140.4f }, // Lifting barrier
+    { -127.f, -1.5f, 2.f }, { -126.f, -0.5f, 0.f }
 };
 const std::vector<playerCoords> ubahnOOBs = {
     { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f }, // Neighbor room with invisible indoor walls
-    { -46.2f, -1.34f, 48.f }, { -17.5f, 0.f, 80.f } // Right side from the roof spawn near railings
+    { -46.2f, -1.34f, 48.f }, { -17.5f, 0.f, 80.f }, // Right side from the roof spawn near railings
+    { 9.4f, -2.51f, -130.f }, { 30.9f, 0.f, -127.f } // Barrier connected with stone fence
+};
+const std::vector<playerCoords> holzmarktOOBs = {
+    { -78.9f, -3.f, 7.8f }, { -75.5f, -0.2f, 4.9f } // Lifting barrier near sewers
 };
 
 static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, float* outVec3)
@@ -235,8 +258,14 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
 
             if (strcmp(curLevel, "01a.pc") == 0)
                 activeOOB = &karlshorstOOBs;
+            if (strcmp(curLevel, "02a.pc") == 0)
+				activeOOB = &safehouseOOBs;
+            if (strcmp(curLevel, "03a.pc") == 0)
+				activeOOB = &missingContactOOBs;
             if (strcmp(curLevel, "04a.pc") == 0)
                 activeOOB = &ubahnOOBs;
+            if (strcmp(curLevel, "06d.pc") == 0)
+				activeOOB = &holzmarktOOBs;
 
             if (!activeOOB)
                 return;
@@ -275,6 +304,12 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
 #endif
     if (g_loadoutPresetsEnabled)
     {
+        void* playerObject = inventoryToPlayer[thisPtr];
+        uint32_t playerTeam = 0;
+
+        if (playerObject)
+            playerTeam = *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(playerObject) + 0x8);
+
         if (g_selectedLoadoutPresetIndex == 0) // Sniper only
         {
             if (weaponId == 0x16 || weaponId == 0x17)
@@ -283,7 +318,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             if (weaponId == 0x18 || weaponId == 0x19 || weaponId == 0x1A || weaponId == 0x1B)
                 weaponId = 0x0;
 
-            if (weaponId == 0x1D)
+            if (weaponId == 0x1D || weaponId == 0x8)
                 weaponId = 0x0;
 
             if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
@@ -296,9 +331,16 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             {
                 weaponId = 0x0;
 
-                srand(static_cast<uint32_t>(time(nullptr)));
-                const uint32_t machineGuns[] = {0x18, 0x19, 0x1A, 0x1B};
-                const uint32_t randomized = machineGuns[rand() % (sizeof(machineGuns) / sizeof(*machineGuns))];
+                std::vector<uint32_t> machineGuns;
+                if (playerTeam == 1)
+                    machineGuns = { 0x18, 0x19, 0x1A, 0x1B };
+                if (playerTeam == 2)
+                    machineGuns = { 0x19, 0x1A };
+                if (playerTeam == 3)
+                    machineGuns = { 0x18, 0x1B };
+
+                std::uniform_int_distribution<size_t> dist(0, std::size(machineGuns) - 1);
+                const uint32_t randomized = machineGuns[dist(gen)];
 
                 if (randomized == 0x18)
                 {
@@ -325,7 +367,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             if (weaponId == 0x13 || weaponId == 0x14 || weaponId == 0x15)
                 weaponId = 0x0;
 
-            if (weaponId == 0x1D)
+            if (weaponId == 0x1D || weaponId == 0x8)
                 weaponId = 0x0;
 
             if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
@@ -340,7 +382,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             if (weaponId == 0x18 || weaponId == 0x19 || weaponId == 0x1A || weaponId == 0x1B)
                 weaponId = 0x0;
 
-            if (weaponId == 0x1D)
+            if (weaponId == 0x1D || weaponId == 0x8)
                 weaponId = 0x0;
 
             if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
@@ -358,13 +400,13 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
             if (weaponId == 0x18 || weaponId == 0x19 || weaponId == 0x1A || weaponId == 0x1B)
                 weaponId = 0x0;
 
-            if (weaponId == 0x1D)
+            if (weaponId == 0x1D || weaponId == 0x8)
                 weaponId = 0x0;
 
             if (weaponId == 0xA)
             {
-                quantity = 50;
-                inventoryAssign(thisPtr, 0x9, 50, -1, 0);
+                quantity = 7;
+                inventoryAssign(thisPtr, 0x9, 7, -1, 0);
                 inventoryAssign(thisPtr, 0xD, 1, -1, 0);
             }
 
@@ -374,7 +416,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
 
         if (g_selectedLoadoutPresetIndex == 4) // No explosives
         {
-            if (weaponId == 0x1D)
+            if (weaponId == 0x1D || weaponId == 0x8)
                 weaponId = 0x0;
 
             if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
@@ -386,14 +428,6 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
         inventoryAssign(thisPtr, 0xC, 1, -1, 0);
 
     return inventoryAssign(thisPtr, weaponId, quantity, reason, ammo);
-}
-
-static uint32_t __cdecl InventoryCap_Detour(uint32_t weaponId)
-{
-    if ((weaponId == 0x9 || weaponId == 0xA) && g_loadoutPresetsEnabled && g_selectedLoadoutPresetIndex == 3)
-        return 50;
-
-    return inventoryCap(weaponId);
 }
 
 static void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
@@ -470,18 +504,18 @@ static double __cdecl SpawnPointScore_Detour(void* spawnPoint, void* actor)
 }
 
 const std::vector<spawnCoords> fuelDumpSpawns = {
-    { 107.83f, -6.45f, -89.65f, russia, crouch },
-    { 257.8721008f, 9.7f, -137.5167542f, germany, crouch }
+    { 107.83f, -6.45f, -89.65f, russiaSpawn, crouch },
+    { 257.87f, 9.7f, -137.52f, germanySpawn, crouch }
 };
 const std::vector<spawnCoords> ubahnSpawns = {
-    { -55.64f, -15.5f, -71.16f, russia, prone },
-    { 76.52f, -15.2f, -80.22f, germany, prone },
-    { -37.73f, -15.5f, 54.42f, russia, prone },
-    { 40.64f, -15.71f, -39.19f, germany, prone }
+    { -55.64f, -15.5f, -71.16f, russiaSpawn, prone },
+    { 76.52f, -15.2f, -80.22f, germanySpawn, prone },
+    { -37.73f, -15.5f, 54.42f, russiaSpawn, prone },
+    { 40.64f, -15.71f, -39.19f, germanySpawn, prone }
 };
 const std::vector<spawnCoords> tempelhofSpawns = {
-    { 95.72f, -7.48f, 27.88f, russia, stand },
-    { -98.89f, -19.11f, -40.56f, germany, prone }
+    { 95.72f, -7.48f, 27.88f, russiaSpawn, stand },
+    { -98.89f, -19.11f, -40.56f, germanySpawn, prone }
 };
 
 static const std::vector<spawnCoords>* activeSpawns = nullptr;
@@ -668,7 +702,7 @@ static void Thread()
             Sleep(1000);
         }
         */
-        isHost = *((const uint8_t*)0x7814F5);
+        isHost = *(const uint8_t*)0x7814F5;
         curLevel = (const char*)0x8185A0;
 
         if (strcmp(curLevel, "ntend.pc") == 0 && isPopulated)
@@ -676,7 +710,9 @@ static void Thread()
             isPopulated = false;
             g_playerDirectory.clear();
             uIdToPlayer.clear();
+            playerTouID.clear();
             g_uIdToIp.clear();
+            inventoryToPlayer.clear();
             g_activeEntities.clear();
             g_entityCoords.clear();
             wsprintfW(greetBuffer, L"Host currently not in-game");
@@ -729,11 +765,6 @@ static void Init()
     if (MH_CreateHook(reinterpret_cast<void*>(InventoryAssignAddr),
         InventoryAssign_Detour,
         reinterpret_cast<void**>(&inventoryAssign)) != MH_OK)
-        return;
-
-    if (MH_CreateHook(reinterpret_cast<void*>(InventoryCapAddr),
-        InventoryCap_Detour,
-        reinterpret_cast<void**>(&inventoryCap)) != MH_OK)
         return;
 
     if (MH_CreateHook(reinterpret_cast<void*>(AutoBalanceUpdateAddr),

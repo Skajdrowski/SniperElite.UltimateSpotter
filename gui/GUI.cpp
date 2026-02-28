@@ -614,7 +614,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 panelX + panelSize - versionPad,
                 panelY + panelSize - versionPad
             };
-            Render::Fonts::MenuBold->DrawTextA("Ultimate Spotter v1.1", -1, &versionRect, DT_RIGHT | DT_BOTTOM | DT_NOCLIP, 0xFF037d50);
+            Render::Fonts::MenuBold->DrawTextA("Ultimate Spotter v1.2", -1, &versionRect, DT_RIGHT | DT_BOTTOM | DT_NOCLIP, 0xFF037d50);
 
             // =====================================================
             // CONTENT AREA
