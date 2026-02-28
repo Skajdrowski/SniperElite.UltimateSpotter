@@ -220,8 +220,7 @@ const std::vector<playerCoords> safehouseOOBs = {
     { -44.f, 5.2f, -33.7f }, { -34.7f, 8.1f, -29.5f } // Barrier with laying steel beam
 };
 const std::vector<playerCoords> missingContactOOBs = {
-    { -105.f, -2.9f, -142.5f }, { -102.f, -1.2f, -140.4f }, // Lifting barrier
-    { -127.f, -1.5f, 2.f }, { -126.f, -0.5f, 0.f }
+    { -105.f, -2.9f, -142.5f }, { -102.f, -1.2f, -140.4f } // Lifting barrier
 };
 const std::vector<playerCoords> ubahnOOBs = {
     { 30.41f, -5.4f, 5.28f }, { 35.75f, -4.12f, 9.8f }, // Neighbor room with invisible indoor walls
