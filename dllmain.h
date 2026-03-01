@@ -28,12 +28,11 @@ constexpr uintptr_t SpawnPointEraseAddr = 0x591D20;
 constexpr uintptr_t SpawnPointEligibleAddr = 0x591700;
 constexpr uintptr_t MpMapTableBaseAddr = 0x757B28;
 
+extern wchar_t iniPath[260];
 extern bool isHost;
 extern const char* curLevel;
-extern bool customSpawns;
-extern bool antiOOB;
-extern bool unlockMaps;
 
+extern bool unlockMaps;
 extern void listMaps();
 constexpr size_t MpMapRecordSize = 0x28;
 constexpr size_t MpMapRecordCount = 34;
@@ -94,6 +93,7 @@ struct playerCoords
 };
 using PlayerGetCoordsFn = void(__thiscall*)(void*, float*);
 static PlayerGetCoordsFn playerGetCoords = nullptr;
+extern bool antiOOB;
 static bool IsInsideVolume(const playerCoords& pos, const playerCoords& minV, const playerCoords& maxV)
 {
     const float minX = (std::min)(minV.x, maxV.x);
@@ -119,7 +119,7 @@ extern uint32_t g_selectedLoadoutPresetIndex;
 
 using AutoBalanceUpdateFn = void(__thiscall*)(void*);
 static AutoBalanceUpdateFn autoBalanceUpdate = nullptr;
-static bool balanceToggle = false;
+extern bool autoBalance;
 
 using SpawnPointScoreFn = double(__cdecl*)(void*, void*);
 static SpawnPointScoreFn spawnPointScore = nullptr;
@@ -166,6 +166,7 @@ static OperatorNewFn operatorNew = reinterpret_cast<OperatorNewFn>(OperatorNewAd
 
 using SpawnPointInitFn = void* (__thiscall*)(void*, int, int**);
 static SpawnPointInitFn spawnPointInit = nullptr;
+extern bool customSpawns;
 
 using SpawnPointInjectFn = void* (__thiscall*)(void*, void*);
 static SpawnPointInjectFn spawnPointInject = reinterpret_cast<SpawnPointInjectFn>(SpawnPointInjectAddr);

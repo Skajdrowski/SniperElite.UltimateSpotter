@@ -1122,7 +1122,8 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 if (mousePressedThisFrame && overCheckbox)
                 {
-                    balanceToggle = !balanceToggle;
+                    autoBalance = !autoBalance;
+                    WritePrivateProfileStringW(L"LOBBY", L"AutoBalance", autoBalance ? L"1" : L"0", iniPath);
                     g_guiDirty = true;
                 }
 
@@ -1142,7 +1143,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     checkboxSize,
                     0xFFFFFFFF
                 );
-                if (balanceToggle)
+                if (autoBalance)
                     Render::Fonts::MenuTabs->DrawTextA(checkMark, -1, &checkboxRect,
                         DT_VCENTER | DT_CENTER | DT_NOCLIP, 0xFF7CFC00);
 
@@ -1180,6 +1181,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 {
                     unlockMaps = !unlockMaps;
                     listMaps();
+                    WritePrivateProfileStringW(L"LOBBY", L"UnlockMaps", unlockMaps ? L"1" : L"0", iniPath);
                     g_guiDirty = true;
                 }
 
@@ -1249,6 +1251,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 if (mousePressedThisFrame && overAntiCheckbox)
                 {
                     antiOOB = !antiOOB;
+                    WritePrivateProfileStringW(L"LOBBY", L"AntiOOB", antiOOB ? L"1" : L"0", iniPath);
                     g_guiDirty = true;
                 }
 
@@ -1317,6 +1320,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 if (mousePressedThisFrame && overCustomSpawnsCheckbox && customSpawnsAvailable)
                 {
                     customSpawns = !customSpawns;
+                    WritePrivateProfileStringW(L"LOBBY", L"CustomSpawns", customSpawns ? L"1" : L"0", iniPath);
                     g_guiDirty = true;
                 }
 
@@ -1613,6 +1617,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                         if (itemPressed)
                         {
                             g_selectedLoadoutPresetIndex = i;
+                            WritePrivateProfileStringW(L"INVENTORIES", L"LoadoutPreset", std::to_wstring(g_selectedLoadoutPresetIndex).c_str(), iniPath);
                             g_loadoutPresetDropdownOpen = false;
                             g_guiDirty = true;
                             clickedAnyItem = true;
@@ -1671,6 +1676,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 if (mousePressedThisFrame && overCheckbox)
                 {
                     g_everyoneHasKnife = !g_everyoneHasKnife;
+                    WritePrivateProfileStringW(L"INVENTORIES", L"EveryOneKnife", g_everyoneHasKnife ? L"1" : L"0", iniPath);
                     g_guiDirty = true;
                 }
 

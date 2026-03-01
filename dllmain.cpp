@@ -10,18 +10,15 @@
 //#define LAN
 //#define DEBUG_LOGGING
 
-#ifndef _countof
-#define _countof(arr) (sizeof(arr) / sizeof((arr)[0]))
-#endif
-
 std::random_device rng;
 std::mt19937 gen(rng());
 
 bool isHost = false;
 const char* curLevel = nullptr;
-bool customSpawns = false;
+bool autoBalance = false;
 bool antiOOB = true;
 bool unlockMaps = false;
+bool customSpawns = false;
 
 static uint32_t __cdecl DirectInput_Detour()
 {
@@ -258,13 +255,13 @@ static void __fastcall PlayerGetCoords_Detour(void* thisPtr, void* /*edx*/, floa
             if (strcmp(curLevel, "01a.pc") == 0)
                 activeOOB = &karlshorstOOBs;
             if (strcmp(curLevel, "02a.pc") == 0)
-				activeOOB = &safehouseOOBs;
+                activeOOB = &safehouseOOBs;
             if (strcmp(curLevel, "03a.pc") == 0)
-				activeOOB = &missingContactOOBs;
+                activeOOB = &missingContactOOBs;
             if (strcmp(curLevel, "04a.pc") == 0)
                 activeOOB = &ubahnOOBs;
             if (strcmp(curLevel, "06d.pc") == 0)
-				activeOOB = &holzmarktOOBs;
+                activeOOB = &holzmarktOOBs;
 
             if (!activeOOB)
                 return;
@@ -431,7 +428,7 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
 
 static void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
 {
-    if (!balanceToggle)
+    if (!autoBalance)
         return autoBalanceUpdate(funcPtr);
 
     return;
@@ -721,6 +718,31 @@ static void Thread()
     }
 }
 
+wchar_t iniPath[MAX_PATH];
+static void config_init()
+{
+    HMODULE hMod = NULL;
+    GetModuleHandleExW(
+        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+        GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+        reinterpret_cast<const wchar_t*>(&config_init),
+        &hMod
+    );
+    GetModuleFileNameW(hMod, iniPath, MAX_PATH);
+
+    wchar_t* dot = wcsrchr(iniPath, L'.');
+    if (dot)
+        wcscpy(dot, L".ini");
+
+    autoBalance = GetPrivateProfileIntW(L"LOBBY", L"AutoBalance", false, iniPath);
+    antiOOB = GetPrivateProfileIntW(L"LOBBY", L"AntiOOB", true, iniPath);
+    unlockMaps = GetPrivateProfileIntW(L"LOBBY", L"UnlockMaps", false, iniPath);
+    customSpawns = GetPrivateProfileIntW(L"LOBBY", L"CustomSpawns", false, iniPath);
+
+    g_selectedLoadoutPresetIndex = GetPrivateProfileIntW(L"INVENTORIES", L"LoadoutPreset", 0, iniPath);
+    g_everyoneHasKnife = GetPrivateProfileIntW(L"INVENTORIES", L"EveryOneKnife", false, iniPath);
+}
+
 static void Init()
 {
 #ifdef DEBUG_LOGGING
@@ -797,6 +819,7 @@ static void Init()
         return;
 
     MH_EnableHook(MH_ALL_HOOKS);
+    config_init();
     InstallDirect3DHook();
     CreateThread(nullptr, 0, reinterpret_cast<LPTHREAD_START_ROUTINE>(Thread), nullptr, 0, nullptr);
     wsprintfW(greetBuffer, L"Host currently not in-game");
