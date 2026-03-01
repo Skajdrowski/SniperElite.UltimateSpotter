@@ -1181,7 +1181,6 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 {
                     unlockMaps = !unlockMaps;
                     listMaps();
-                    WritePrivateProfileStringW(L"LOBBY", L"UnlockMaps", unlockMaps ? L"1" : L"0", iniPath);
                     g_guiDirty = true;
                 }
 
