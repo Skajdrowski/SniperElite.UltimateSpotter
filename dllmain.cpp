@@ -300,6 +300,12 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
 #endif
     if (g_loadoutPresetsEnabled)
     {
+        const bool pistols = weaponId == Luger || weaponId == P_38;
+        const bool snipers = weaponId == Gewehr43 || weaponId == Mosin91 || weaponId == SVT_40;
+        const bool machineGuns = weaponId == PPSH || weaponId == MP_40 || weaponId == MG42 || weaponId == DP_28;
+        const bool throwables = weaponId == StickGrenade || weaponId == FragGrenade || weaponId == TnT;
+        const bool bazookas = weaponId == Panzerschreck || weaponId == Panzerfaust;
+
         void* playerObject = inventoryToPlayer[thisPtr];
         uint32_t playerTeam = 0;
 
@@ -308,120 +314,84 @@ static uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown 
 
         if (g_selectedLoadoutPresetIndex == 0) // Sniper only
         {
-            if (weaponId == 0x16 || weaponId == 0x17)
-                weaponId = 0x0;
-
-            if (weaponId == 0x18 || weaponId == 0x19 || weaponId == 0x1A || weaponId == 0x1B)
-                weaponId = 0x0;
-
-            if (weaponId == 0x1D || weaponId == 0x8)
-                weaponId = 0x0;
-
-            if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
+            if (pistols || machineGuns || bazookas || throwables)
                 weaponId = 0x0;
         }
 
         if (g_selectedLoadoutPresetIndex == 1) // Machine gun only
         {
-            if (weaponId == 0x16 || weaponId == 0x17)
+            if (pistols)
             {
                 weaponId = 0x0;
 
-                std::vector<uint32_t> machineGuns;
+                std::vector<uint8_t> machineGunsPool;
                 if (playerTeam == 1)
-                    machineGuns = { 0x18, 0x19, 0x1A, 0x1B };
+                    machineGunsPool = { PPSH, MP_40, MG42, DP_28 };
                 if (playerTeam == 2)
-                    machineGuns = { 0x19, 0x1A };
+                    machineGunsPool = { MP_40, MG42 };
                 if (playerTeam == 3)
-                    machineGuns = { 0x18, 0x1B };
+                    machineGunsPool = { PPSH, DP_28 };
 
-                std::uniform_int_distribution<size_t> dist(0, std::size(machineGuns) - 1);
-                const uint32_t randomized = machineGuns[dist(gen)];
+                std::uniform_int_distribution<size_t> dist(0, std::size(machineGunsPool) - 1);
+                const uint32_t randomized = machineGunsPool[dist(gen)];
 
-                if (randomized == 0x18)
+                if (randomized == PPSH)
                 {
-                    inventoryAssign(thisPtr, 0x3, 284, -1, 0);
-                    inventoryAssign(thisPtr, 0x18, 1, -1, 71);
+                    inventoryAssign(thisPtr, PPSHAmmo, 284, -1, 0);
+                    inventoryAssign(thisPtr, PPSH, 1, -1, 71);
                 }
-                if (randomized == 0x19)
+                if (randomized == MP_40)
                 {
-                    inventoryAssign(thisPtr, 0x4, 128, -1, 0);
-                    inventoryAssign(thisPtr, 0x19, 1, -1, 32);
+                    inventoryAssign(thisPtr, MP_40Ammo, 128, -1, 0);
+                    inventoryAssign(thisPtr, MP_40, 1, -1, 32);
                 }
-                if (randomized == 0x1A)
+                if (randomized == MG42)
                 {
-                    inventoryAssign(thisPtr, 0x5, 150, -1, 0);
-                    inventoryAssign(thisPtr, 0x1A, 1, -1, 50);
+                    inventoryAssign(thisPtr, MG42Ammo, 150, -1, 0);
+                    inventoryAssign(thisPtr, MG42, 1, -1, 50);
                 }
-                if (randomized == 0x1B)
+                if (randomized == DP_28)
                 {
-                    inventoryAssign(thisPtr, 0x6, 188, -1, 0);
-                    inventoryAssign(thisPtr, 0x1B, 1, -1, 47);
+                    inventoryAssign(thisPtr, DP_28Ammo, 188, -1, 0);
+                    inventoryAssign(thisPtr, DP_28, 1, -1, 47);
                 }
             }
 
-            if (weaponId == 0x13 || weaponId == 0x14 || weaponId == 0x15)
-                weaponId = 0x0;
-
-            if (weaponId == 0x1D || weaponId == 0x8)
-                weaponId = 0x0;
-
-            if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
+            if (snipers || bazookas || throwables)
                 weaponId = 0x0;
         }
 
         if (g_selectedLoadoutPresetIndex == 2) // Pistol only
         {
-            if (weaponId == 0x13 || weaponId == 0x14 || weaponId == 0x15)
-                weaponId = 0x0;
-
-            if (weaponId == 0x18 || weaponId == 0x19 || weaponId == 0x1A || weaponId == 0x1B)
-                weaponId = 0x0;
-
-            if (weaponId == 0x1D || weaponId == 0x8)
-                weaponId = 0x0;
-
-            if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
+            if (snipers || machineGuns || bazookas || throwables)
                 weaponId = 0x0;
         }
 
         if (g_selectedLoadoutPresetIndex == 3) // Grenades only
         {
-            if (weaponId == 0x16 || weaponId == 0x17)
+            if (pistols || snipers || machineGuns || bazookas)
                 weaponId = 0x0;
 
-            if (weaponId == 0x13 || weaponId == 0x14 || weaponId == 0x15)
-                weaponId = 0x0;
-
-            if (weaponId == 0x18 || weaponId == 0x19 || weaponId == 0x1A || weaponId == 0x1B)
-                weaponId = 0x0;
-
-            if (weaponId == 0x1D || weaponId == 0x8)
-                weaponId = 0x0;
-
-            if (weaponId == 0xA)
+            if (weaponId == FragGrenade)
             {
                 quantity = 7;
-                inventoryAssign(thisPtr, 0x9, 7, -1, 0);
-                inventoryAssign(thisPtr, 0xD, 1, -1, 0);
+                inventoryAssign(thisPtr, StickGrenade, 7, -1, 0);
+                inventoryAssign(thisPtr, MedKit, 1, -1, 0);
             }
 
-            if (weaponId == 0xF)
+            if (weaponId == TnT)
                 weaponId = 0x0;
         }
 
         if (g_selectedLoadoutPresetIndex == 4) // No explosives
         {
-            if (weaponId == 0x1D || weaponId == 0x8)
-                weaponId = 0x0;
-
-            if (weaponId == 0x9 || weaponId == 0xA || weaponId == 0xF)
+            if (bazookas || throwables)
                 weaponId = 0x0;
         }
     }
 
-    if (weaponId == 0x11 && g_everyoneHasKnife)
-        inventoryAssign(thisPtr, 0xC, 1, -1, 0);
+    if (weaponId == Binoculars && g_everyoneHasKnife)
+        inventoryAssign(thisPtr, Knife, 1, -1, 0);
 
     return inventoryAssign(thisPtr, weaponId, quantity, reason, ammo);
 }
