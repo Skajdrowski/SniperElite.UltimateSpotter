@@ -71,7 +71,7 @@ bool unBanIpAddress(const std::string& ipAddress)
 }
 bool isIpAddressBanned(const std::string& ipAddress)
 {
-    return !ipAddress.empty() && bannedIPAddresses.count(ipAddress) > 0;
+    return !ipAddress.empty() && bannedIPAddresses.contains(ipAddress);
 }
 
 std::unordered_map<std::wstring, PlayerFetchEntry> playerToName = {};

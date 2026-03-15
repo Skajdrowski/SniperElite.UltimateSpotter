@@ -406,7 +406,6 @@ void PerformInventoryFetch()
 
     const auto updateSameIpAliasStatus = [&]() -> void
         {
-            g_fetch.statusMessage.clear();
             if (g_fetch.uid == 0 || g_fetch.ip.empty())
                 return;
 
@@ -610,7 +609,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
             // TOOLBAR (pages)
             // =====================================================
             const int pageCount = 2;
-            const int toolbarH = panelSize / 10;
+            const int toolbarH = panelSize / 14;
             const int buttonW = panelSize / pageCount;
 
             Render::Draw(g_pd3dDevice, panelX, panelY, panelSize, toolbarH, 0xAA000000);
@@ -738,20 +737,8 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 if (mousePressedThisFrame && !leftMouseDown)
                     g_playerListDraggingScroll = false;
 
-                const int wheelDelta = static_cast<int>(GetAsyncKeyState(VK_MBUTTON));
-                (void)wheelDelta;
-
                 if (overList)
                 {
-                    if ((GetAsyncKeyState(VK_UP) & 0x8000) != 0)
-                        g_playerListScroll -= 1;
-                    if ((GetAsyncKeyState(VK_DOWN) & 0x8000) != 0)
-                        g_playerListScroll += 1;
-                    if ((GetAsyncKeyState(VK_PRIOR) & 0x8000) != 0)
-                        g_playerListScroll -= maxRows;
-                    if ((GetAsyncKeyState(VK_NEXT) & 0x8000) != 0)
-                        g_playerListScroll += maxRows;
-
                     if (g_playerListScroll > maxScroll)
                         g_playerListScroll = maxScroll;
                     if (g_playerListScroll < 0)
@@ -926,7 +913,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 y += listHeight + 20;
 
                 const int infoLabelX = panelX + padX;
-                const int infoValueX = infoLabelX + 180;
+                const int infoValueX = infoLabelX + 120;
 
                 Render::Text(Render::Fonts::MenuText, infoLabelX, y, 0xFFFFFFFF, "Player name:");
                 const std::wstring nameValue = g_fetch.hasResult && !g_fetch.displayName.empty() ? g_fetch.displayName : L"-";
@@ -936,7 +923,11 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 Render::Text(Render::Fonts::MenuText, infoLabelX, y, 0xFFFFFFFF, "Player address:");
                 std::string addressValue = "-";
                 if (g_fetch.hasResult && !g_fetch.ip.empty())
+                {
                     addressValue = g_fetch.ip;
+                    if (isIpAddressBanned(g_fetch.ip))
+                        addressValue += " (Banned)";
+                }
                 else
                     addressValue = "-";
                 Render::Text(Render::Fonts::MenuText, infoValueX, y, 0xFF90EE90, addressValue.c_str());
