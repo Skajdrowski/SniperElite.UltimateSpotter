@@ -146,17 +146,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="19in1.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="gui\GUI.cpp" />
     <ClCompile Include="gui\RenderManager.cpp" />
     <ClCompile Include="gui\RenderTarget.cpp" />
+    <ClCompile Include="Hooks\inventories.cpp" />
+    <ClCompile Include="Hooks\misc.cpp" />
+    <ClCompile Include="Hooks\players.cpp" />
+    <ClCompile Include="Hooks\spawns.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="19in1.h" />
     <ClInclude Include="dllmain.h" />
     <ClInclude Include="dxHook.h" />
     <ClInclude Include="gui\GUI.h" />
     <ClInclude Include="gui\RenderManager.h" />
     <ClInclude Include="gui\RenderTarget.h" />
+    <ClInclude Include="Hooks\inventories.h" />
+    <ClInclude Include="Hooks\misc.h" />
+    <ClInclude Include="Hooks\players.h" />
+    <ClInclude Include="Hooks\spawns.h" />
     <ClInclude Include="iathook.h" />
     <ClInclude Include="MinHook.h" />
     <ClInclude Include="resource.h" />

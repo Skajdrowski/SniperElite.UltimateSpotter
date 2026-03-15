@@ -19,6 +19,12 @@
     <Filter Include="Header Files\GUI">
       <UniqueIdentifier>{be76c23a-f71a-4c3b-a8e3-3ac257bf8d74}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Hooks">
+      <UniqueIdentifier>{b2d44370-8c85-4898-a04d-7e71e9a94091}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Hooks">
+      <UniqueIdentifier>{924394e0-2202-4f2d-8626-0169acea7061}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -32,6 +38,21 @@
     </ClCompile>
     <ClCompile Include="gui\RenderTarget.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\inventories.cpp">
+      <Filter>Source Files\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\players.cpp">
+      <Filter>Source Files\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\spawns.cpp">
+      <Filter>Source Files\Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="19in1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Hooks\misc.cpp">
+      <Filter>Source Files\Hooks</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -58,6 +79,21 @@
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\inventories.h">
+      <Filter>Header Files\Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\players.h">
+      <Filter>Header Files\Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\spawns.h">
+      <Filter>Header Files\Hooks</Filter>
+    </ClInclude>
+    <ClInclude Include="19in1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hooks\misc.h">
+      <Filter>Header Files\Hooks</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

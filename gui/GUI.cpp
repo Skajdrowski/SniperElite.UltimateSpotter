@@ -404,6 +404,46 @@ void PerformInventoryFetch()
     g_fetch.statusMessage.clear();
     g_guiDirty = true;
 
+    const auto updateSameIpAliasStatus = [&]() -> void
+        {
+            g_fetch.statusMessage.clear();
+            if (g_fetch.uid == 0 || g_fetch.ip.empty())
+                return;
+
+            std::vector<std::wstring> aliases;
+            aliases.reserve(4);
+
+            for (const auto& [nameKey, entry] : playerToName)
+            {
+                if (entry.uid == g_fetch.uid)
+                    continue;
+                if (entry.ipAddress.empty())
+                    continue;
+                if (entry.ipAddress != g_fetch.ip)
+                    continue;
+
+                const std::wstring alias = !entry.displayName.empty() ? entry.displayName : nameKey;
+                if (!alias.empty())
+                    aliases.push_back(alias);
+            }
+
+            if (aliases.empty())
+                return;
+
+            std::sort(aliases.begin(), aliases.end());
+            aliases.erase(std::unique(aliases.begin(), aliases.end()), aliases.end());
+
+            std::wstringstream status;
+            status << L"Player with same IP: ";
+            for (size_t i = 0; i < aliases.size(); ++i)
+            {
+                if (i != 0)
+                    status << L", ";
+                status << aliases[i];
+            }
+            g_fetch.statusMessage = status.str();
+        };
+
     const std::wstring inputText = GetActivePromptText();
     const std::wstring trimmedInput = Trim(inputText);
     if (trimmedInput.empty())
@@ -418,8 +458,8 @@ void PerformInventoryFetch()
             if (name.empty())
                 return false;
 
-            const std::map<std::wstring, PlayerFetchEntry>::iterator dirIt = g_playerDirectory.find(name);
-            if (dirIt == g_playerDirectory.end())
+            const std::unordered_map<std::wstring, PlayerFetchEntry>::iterator dirIt = playerToName.find(name);
+            if (dirIt == playerToName.end())
                 return false;
 
             const PlayerFetchEntry& entry = dirIt->second;
@@ -430,7 +470,7 @@ void PerformInventoryFetch()
             g_fetch.player = entry.player;
             if (!g_fetch.player)
             {
-                const std::map<uint32_t, void*>::iterator invIt = uIdToPlayer.find(entry.uid);
+                const std::unordered_map<uint32_t, void*>::iterator invIt = uIdToPlayer.find(entry.uid);
                 if (invIt != uIdToPlayer.end())
                     g_fetch.player = invIt->second;
             }
@@ -441,6 +481,7 @@ void PerformInventoryFetch()
                 g_fetch.ip = entry.ipAddress;
 
             g_fetch.hasResult = true;
+            updateSameIpAliasStatus();
             g_guiDirty = true;
             return true;
         };
@@ -459,7 +500,7 @@ void PerformInventoryFetch()
     g_fetch.uid = parsedUID;
     g_fetch.displayName = trimmedInput;
 
-    const std::map<uint32_t, void*>::iterator it = uIdToPlayer.find(parsedUID);
+    const std::unordered_map<uint32_t, void*>::iterator it = uIdToPlayer.find(parsedUID);
     if (it != uIdToPlayer.end())
     {
         g_fetch.player = it->second;
@@ -471,7 +512,7 @@ void PerformInventoryFetch()
         g_fetch.online = false;
     }
 
-    for (const auto& [name, entry] : g_playerDirectory)
+    for (const auto& [name, entry] : playerToName)
     {
         if (entry.uid == parsedUID)
         {
@@ -486,14 +527,15 @@ void PerformInventoryFetch()
     }
 
     g_fetch.hasResult = true;
+    updateSameIpAliasStatus();
     g_guiDirty = true;
 }
 
 size_t ComputePlayerDirectorySignature()
 {
-    size_t signature = g_playerDirectory.size();
+    size_t signature = playerToName.size();
     std::hash<std::wstring> wstringHash;
-    for (const auto& [name, entry] : g_playerDirectory)
+    for (const auto& [name, entry] : playerToName)
     {
         size_t part = wstringHash(name);
         part ^= static_cast<size_t>(entry.uid) + 0x9e3779b9 + (part << 6) + (part >> 2);
@@ -661,8 +703,8 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     "Player listing");
 
                 std::vector<std::pair<std::wstring, const PlayerFetchEntry*>> playerRows;
-                playerRows.reserve(g_playerDirectory.size());
-                for (const auto& [name, entry] : g_playerDirectory)
+                playerRows.reserve(playerToName.size());
+                for (const auto& [name, entry] : playerToName)
                     playerRows.emplace_back(name, &entry);
 
                 std::sort(playerRows.begin(), playerRows.end(),
@@ -941,7 +983,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 {
                     std::wstringstream status;
                     const PlayerFetchEntry* entry = nullptr;
-                    for (const auto& [string, value] : g_playerDirectory)
+                    for (const auto& [string, value] : playerToName)
                     {
                         if (value.uid == g_fetch.uid)
                         {
@@ -1001,7 +1043,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 {
                     std::wstringstream status;
                     const PlayerFetchEntry* entry = nullptr;
-                    for (const auto& [string, value] : g_playerDirectory)
+                    for (const auto& [string, value] : playerToName)
                     {
                         if (value.uid == g_fetch.uid)
                         {
@@ -1012,12 +1054,20 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     if (canBan)
                     {
                         const bool newlyBanned = banIpAddress(g_fetch.ip);
-                        const uint8_t result = kick(g_fetch.uid, 4);
+                        bool kickResult = false;
+
+                        for (const auto& [nameKey, value] : playerToName)
+                        {
+                            if (!value.isOnline || value.ipAddress != g_fetch.ip)
+                                continue;
+
+                            kickResult = kick(value.uid, 4);
+                        }
 
                         if (!g_fetch.displayName.empty())
                             status << L" (" << g_fetch.displayName << L")";
 
-                        status << (newlyBanned && result ? success : fail);
+                        status << (newlyBanned && kickResult ? success : fail);
                         if (!newlyBanned && entry->isOnline)
                             status << L" You're likely trying to ban yourself or you already banned that IP.";
                         else if (!newlyBanned)
@@ -1062,7 +1112,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 {
                     std::wstringstream status;
                     const PlayerFetchEntry* entry = nullptr;
-                    for (const auto& [string, value] : g_playerDirectory)
+                    for (const auto& [string, value] : playerToName)
                     {
                         if (value.uid == g_fetch.uid)
                         {

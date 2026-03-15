@@ -1,6 +1,7 @@
 #pragma once
 #include "../dxsdk/include/d3d8.h"
 #include "../dllmain.h"
+#include "../19in1.h"
 
 struct PromptState
 {
