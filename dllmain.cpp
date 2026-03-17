@@ -1,3 +1,5 @@
+#pragma warning(disable:4996)
+
 #include "dllmain.h"
 #include "MinHook.h"
 #include "dxHook.h"

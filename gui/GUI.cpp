@@ -6,9 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <functional>
-#include <iomanip>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -296,7 +293,7 @@ bool ProcessPromptInput()
             }
         };
 
-    auto handleActionKey = [&](int vk, const std::function<void()>& action)
+    auto handleActionKey = [&](int vk, const auto& action)
         {
             const bool isDown = (GetAsyncKeyState(vk) & 0x8000) != 0;
             if (isDown && !g_keyLatch[vk])
@@ -364,13 +361,6 @@ std::wstring Trim(const std::wstring& text)
     return text.substr(begin, end - begin + 1);
 }
 
-std::string FormatPointer(void* ptr)
-{
-    std::stringstream ss;
-    ss << "0x" << std::uppercase << std::hex << reinterpret_cast<uintptr_t>(ptr);
-    return ss.str();
-}
-
 std::wstring GetActivePromptText()
 {
     if (!g_prompt.input.empty())
@@ -432,15 +422,14 @@ void PerformInventoryFetch()
             std::sort(aliases.begin(), aliases.end());
             aliases.erase(std::unique(aliases.begin(), aliases.end()), aliases.end());
 
-            std::wstringstream status;
-            status << L"Player with same IP: ";
+            std::wstring status = L"Player with same IP: ";
             for (size_t i = 0; i < aliases.size(); ++i)
             {
                 if (i != 0)
-                    status << L", ";
-                status << aliases[i];
+                    status += L", ";
+                status += aliases[i];
             }
-            g_fetch.statusMessage = status.str();
+            g_fetch.statusMessage = status;
         };
 
     const std::wstring inputText = GetActivePromptText();
@@ -884,18 +873,17 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                         rowRect.bottom - rowRect.top,
                         rowColor);
 
-                    std::wstringstream rowText;
-                    rowText << playerRows[globalIdx].first;
+                    std::wstring rowText = playerRows[globalIdx].first;
                     if (entryPtr && entryPtr->uid == 1000)
-                        rowText << " [Host]";
+                        rowText += L" [Host]";
                     else
-                        rowText << (isOnline ? " [Online]" : " [Offline]");
+                        rowText += (isOnline ? L" [Online]" : L" [Offline]");
 
                     Render::TextW(Render::Fonts::MenuText,
                         rowRect.left + 6,
                         rowRect.top + 3,
                         0xFF90EE90,
-                        rowText.str().c_str());
+                        rowText.c_str());
 
                     if (mousePressedThisFrame && hovered && entryPtr)
                     {
@@ -972,7 +960,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 if (kickPressed)
                 {
-                    std::wstringstream status;
+                    std::wstring status;
                     const PlayerFetchEntry* entry = nullptr;
                     for (const auto& [string, value] : playerToName)
                     {
@@ -987,21 +975,24 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                         const uint8_t result = kick(g_fetch.uid, 4);
 
                         if (!g_fetch.displayName.empty())
-                            status << L" (" << g_fetch.displayName << L")";
+                        {
+                            status += L" (";
+                            status += g_fetch.displayName;
+                            status += L")";
+                        }
 
-                        status << (result ? success : fail);
+                        status += (result ? success : fail);
                         if (!result && entry->isOnline)
-                            status << L" You're likely trying to kick yourself or an internal error occured.";
+                            status += L" You're likely trying to kick yourself or an internal error occured.";
                         else if (!result && !entry->isOnline)
-                            status << L" You tried to kick an offline player.";
+                            status += L" You tried to kick an offline player.";
 
-                        g_fetch.statusMessage = status.str();
+                        g_fetch.statusMessage = status;
                         g_guiDirty = true;
                     }
                     else
                     {
-                        status << fetchFirst;
-                        g_fetch.statusMessage = status.str();
+                        g_fetch.statusMessage = fetchFirst;
                         g_guiDirty = true;
                     }
                 }
@@ -1032,7 +1023,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 if (banPressed)
                 {
-                    std::wstringstream status;
+                    std::wstring status;
                     const PlayerFetchEntry* entry = nullptr;
                     for (const auto& [string, value] : playerToName)
                     {
@@ -1056,21 +1047,24 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                         }
 
                         if (!g_fetch.displayName.empty())
-                            status << L" (" << g_fetch.displayName << L")";
+                        {
+                            status += L" (";
+                            status += g_fetch.displayName;
+                            status += L")";
+                        }
 
-                        status << (newlyBanned && kickResult ? success : fail);
+                        status += (newlyBanned && kickResult ? success : fail);
                         if (!newlyBanned && entry->isOnline)
-                            status << L" You're likely trying to ban yourself or you already banned that IP.";
+                            status += L" You're likely trying to ban yourself or you already banned that IP.";
                         else if (!newlyBanned)
-                            status << L" This IP is likely already banned.";
+                            status += L" This IP is likely already banned.";
 
-                        g_fetch.statusMessage = status.str();
+                        g_fetch.statusMessage = status;
                         g_guiDirty = true;
                     }
                     else
                     {
-                        status << fetchFirst;
-                        g_fetch.statusMessage = status.str();
+                        g_fetch.statusMessage = fetchFirst;
                         g_guiDirty = true;
                     }
                 }
@@ -1101,7 +1095,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 if (unbanPressed)
                 {
-                    std::wstringstream status;
+                    std::wstring status;
                     const PlayerFetchEntry* entry = nullptr;
                     for (const auto& [string, value] : playerToName)
                     {
@@ -1116,21 +1110,24 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                         const bool removedBan = unBanIpAddress(g_fetch.ip);
 
                         if (!g_fetch.displayName.empty())
-                            status << L" (" << g_fetch.displayName << L")";
+                        {
+                            status += L" (";
+                            status += g_fetch.displayName;
+                            status += L")";
+                        }
 
-                        status << (removedBan ? success : fail);
+                        status += (removedBan ? success : fail);
                         if (!removedBan)
-                            status << L" The player you're trying to unban wasn't banned or an internal error occured.";
+                            status += L" The player you're trying to unban wasn't banned or an internal error occured.";
                         else if (removedBan)
-                            status << L" Selected player should now be able to rejoin your lobbies.";
+                            status += L" Selected player should now be able to rejoin your lobbies.";
 
-                        g_fetch.statusMessage = status.str();
+                        g_fetch.statusMessage = status;
                         g_guiDirty = true;
                     }
                     else
                     {
-                        status << fetchFirst;
-                        g_fetch.statusMessage = status.str();
+                        g_fetch.statusMessage = fetchFirst;
                         g_guiDirty = true;
                     }
                 }

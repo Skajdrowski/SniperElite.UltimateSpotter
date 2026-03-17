@@ -170,22 +170,6 @@ void Render::GradientH(LPDIRECT3DDEVICE8 pDevice, int x, int y, int w, int h, D3
 	pDevice->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, vertices, sizeof(CUSTOMVERTEX));
 }
 
-void Render::DrawCircle(LPDIRECT3DDEVICE8 pDevice, float x, float y, float r, float segments, D3DCOLOR color)
-{
-	const int vertexCount = static_cast<int>(segments) + 1;
-	CUSTOMVERTEX* vertices = new CUSTOMVERTEX[vertexCount];
-	for (int i = 0; i < vertexCount; i++)
-	{
-		const float theta = 2.0f * D3DX_PI * static_cast<float>(i) / segments;
-		vertices[i] = { x + r * std::cos(theta), y + r * std::sin(theta), 0.0f, 1.0f, color };
-	}
-
-	pDevice->SetVertexShader(D3DFVF_CUSTOMVERTEX);
-	pDevice->DrawPrimitiveUP(D3DPT_LINESTRIP, segments, vertices, sizeof(CUSTOMVERTEX));
-
-	delete[] vertices;
-}
-
 void Render::Text(LPD3DXFONT pFont, int x, int y, D3DCOLOR color, const char* text, DWORD format)
 {
 	RECT Rect = { x, y, x, y };

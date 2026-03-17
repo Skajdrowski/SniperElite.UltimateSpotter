@@ -24,7 +24,6 @@ namespace Render
 	void DrawSquare(LPDIRECT3DDEVICE8 pDevice, int x, int y, int size, D3DCOLOR color);
 
 	void GradientV(LPDIRECT3DDEVICE8 pDevice, int x, int y, int w, int h, D3DCOLOR c1, D3DCOLOR c2);
-	void DrawCircle(LPDIRECT3DDEVICE8 pDevice, float x, float y, float r, float segments, D3DCOLOR color);
 	void GradientH(LPDIRECT3DDEVICE8 pDevice, int x, int y, int w, int h, D3DCOLOR c1, D3DCOLOR c2);
 
 	namespace Fonts
