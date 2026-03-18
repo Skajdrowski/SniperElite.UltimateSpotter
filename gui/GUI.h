@@ -21,7 +21,8 @@ struct FetchState
 {
     bool hasResult = false;
     uint32_t uid = 0;
-	void* player = nullptr;
+    void* player = nullptr;
+    uint32_t statusColor = 0xFFAAAAAA;
     std::wstring statusMessage;
     std::wstring displayName;
     bool online = false;

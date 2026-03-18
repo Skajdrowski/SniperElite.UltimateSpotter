@@ -49,6 +49,15 @@ bool g_leftMouseWasDown = false;
 std::array<bool, 256> g_keyLatch{};
 
 FetchState g_fetch;
+void noFetch()
+{
+    if (!g_fetch.hasResult)
+    {
+        g_fetch.statusColor = 0xFFAAAAAA;
+        g_fetch.statusMessage = L" Firstly choose a player from 'Player listing' before issuing anything.";
+        g_guiDirty = true;
+    }
+}
 
 int g_currentPage = 0;
 
@@ -921,17 +930,16 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 Render::Text(Render::Fonts::MenuText, infoValueX, y, 0xFF90EE90, addressValue.c_str());
                 y += 24;
 
+                const wchar_t* const success = L" [Success]";
+                const wchar_t* const fail = L" [Fail]";
+
                 if (!g_fetch.statusMessage.empty())
                 {
-                    Render::TextW(Render::Fonts::MenuText, infoLabelX, y, 0xFFAAAAAA, g_fetch.statusMessage.c_str());
+                    Render::TextW(Render::Fonts::MenuText, infoLabelX, y, g_fetch.statusColor, g_fetch.statusMessage.c_str());
                     y += 20;
                 }
 
                 // KICK
-                const wchar_t* const success = L" [Success]";
-                const wchar_t* const fail = L" [Fail]";
-                const wchar_t* const fetchFirst = L" Firstly choose a player from 'Player listing' before issuing anything.";
-
                 const int dangerW = 64;
                 const int dangerH = 32;
 
@@ -974,20 +982,18 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     {
                         const bool result = kick(g_fetch.uid, 4);
 
-                        status += (result ? success : fail);
-                        if (!result && entry->isOnline)
-                            status += L" You're likely trying to kick yourself or an internal error occured.";
-                        else if (!result && !entry->isOnline)
+                        g_fetch.statusColor = result ? 0xFF90EE90 : 0xFFED4337;
+                        status += result ? success : fail;
+                        if (!result && !entry->isOnline)
                             status += L" You tried to kick an offline player.";
+                        else if (!result)
+                            status += L" An internal error occured.";
 
                         g_fetch.statusMessage = status;
                         g_guiDirty = true;
                     }
                     else
-                    {
-                        g_fetch.statusMessage = fetchFirst;
-                        g_guiDirty = true;
-                    }
+                        noFetch();
                 }
 
                 // BAN
@@ -1039,20 +1045,16 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                             kickResult = kick(value.uid, 4);
                         }
 
-                        status += (newlyBanned && kickResult ? success : fail);
-                        if (!newlyBanned && entry->isOnline)
-                            status += L" You're likely trying to ban yourself or you already banned that IP.";
-                        else if (!newlyBanned)
-                            status += L" This IP is likely already banned.";
+                        g_fetch.statusColor = newlyBanned ? 0xFF90EE90 : 0xFFED4337;
+                        status += newlyBanned ? success : fail;
+                        if (!newlyBanned)
+                            status += L" This IP is already banned or an internal error occured.";
 
                         g_fetch.statusMessage = status;
                         g_guiDirty = true;
                     }
                     else
-                    {
-                        g_fetch.statusMessage = fetchFirst;
-                        g_guiDirty = true;
-                    }
+                        noFetch();
                 }
 
                 // UNBAN
@@ -1095,20 +1097,16 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     {
                         const bool removedBan = unBanIpAddress(g_fetch.ip);
 
-                        status += (removedBan ? success : fail);
+                        g_fetch.statusColor = removedBan ? 0xFF90EE90 : 0xFFED4337;
+                        status += removedBan ? success : fail;
                         if (!removedBan)
-                            status += L" The player you're trying to unban wasn't banned or an internal error occured.";
-                        else if (removedBan)
-                            status += L" Selected player should now be able to rejoin your lobbies.";
+                            status += L" The IP you're trying to unban wasn't banned or an internal error occured.";
 
                         g_fetch.statusMessage = status;
                         g_guiDirty = true;
                     }
                     else
-                    {
-                        g_fetch.statusMessage = fetchFirst;
-                        g_guiDirty = true;
-                    }
+                        noFetch();
                 }
                 y += dangerH + 12;
 
