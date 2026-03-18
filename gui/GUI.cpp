@@ -13,7 +13,7 @@ bool GUI::isVisible = false;
 bool GUI::isGreeting = true;
 bool GUI::isInitialized = false;
 
-int g_playerListScroll = 0;
+uint32_t g_playerListScroll = 0;
 bool g_playerListDraggingScroll = false;
 int g_playerListDragMouseOffsetY = 0;
 
@@ -575,7 +575,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
     bool promptVisibleThisFrame = false;
 
-    const char* checkMark = "X";
+    const char* const checkMark = "X";
 
     if (isVisible)
     {
@@ -630,7 +630,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
 
                 static char label[24];
                 if (i == 0)
-                    sprintf(label, "LOBBY MANAGMENT");
+                    sprintf(label, "LOBBY MODERATION");
                 if (i == 1)
                     sprintf(label, "PLAYER INVENTORIES");
 
@@ -841,10 +841,10 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     thumbRect.bottom - thumbRect.top,
                     0xFF000000);
 
-                const int totalPlayers = static_cast<int>(playerRows.size());
-                for (int localIdx = 0; localIdx < maxRows; ++localIdx)
+                const uint32_t totalPlayers = playerRows.size();
+                for (uint32_t localIdx = 0; localIdx < maxRows; ++localIdx)
                 {
-                    const int globalIdx = g_playerListScroll + localIdx;
+                    const uint32_t globalIdx = g_playerListScroll + localIdx;
                     if (globalIdx < 0 || globalIdx >= totalRows)
                         continue;
                     if (globalIdx >= totalPlayers)
@@ -928,9 +928,9 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                 }
 
                 // KICK
-                const std::wstring success = L" [Success]";
-                const std::wstring fail = L" [Failed]";
-                const std::wstring fetchFirst = L" Firstly choose a player from 'Player listing' before issuing anything.";
+                const wchar_t* const success = L" [Success]";
+                const wchar_t* const fail = L" [Fail]";
+                const wchar_t* const fetchFirst = L" Firstly choose a player from 'Player listing' before issuing anything.";
 
                 const int dangerW = 64;
                 const int dangerH = 32;
@@ -972,14 +972,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     }
                     if (canKick)
                     {
-                        const uint8_t result = kick(g_fetch.uid, 4);
-
-                        if (!g_fetch.displayName.empty())
-                        {
-                            status += L" (";
-                            status += g_fetch.displayName;
-                            status += L")";
-                        }
+                        const bool result = kick(g_fetch.uid, 4);
 
                         status += (result ? success : fail);
                         if (!result && entry->isOnline)
@@ -1046,13 +1039,6 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                             kickResult = kick(value.uid, 4);
                         }
 
-                        if (!g_fetch.displayName.empty())
-                        {
-                            status += L" (";
-                            status += g_fetch.displayName;
-                            status += L")";
-                        }
-
                         status += (newlyBanned && kickResult ? success : fail);
                         if (!newlyBanned && entry->isOnline)
                             status += L" You're likely trying to ban yourself or you already banned that IP.";
@@ -1109,13 +1095,6 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     {
                         const bool removedBan = unBanIpAddress(g_fetch.ip);
 
-                        if (!g_fetch.displayName.empty())
-                        {
-                            status += L" (";
-                            status += g_fetch.displayName;
-                            status += L")";
-                        }
-
                         status += (removedBan ? success : fail);
                         if (!removedBan)
                             status += L" The player you're trying to unban wasn't banned or an internal error occured.";
@@ -1144,7 +1123,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
-                const char* autoBalanceLabel = "Disable TDM AutoBalance";
+                const char* const autoBalanceLabel = "Disable TDM AutoBalance";
                 RECT checkboxLabelRect{
                     checkboxRect.right + 8,
                     y,
@@ -1201,7 +1180,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
-                const char* enableMapsLabel = "Enable 19in1 maps";
+                const char* const enableMapsLabel = "Enable 19in1 maps";
                 RECT enableMapsCheckboxLabelRect{
                     enableMapsCheckboxRect.right + 8,
                     y,
@@ -1271,7 +1250,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
-                const char* antiOobLabel = "Anti OOB";
+                const char* const antiOobLabel = "Anti OOB";
                 RECT antiCheckboxLabelRect{
                     antiCheckboxRect.right + 8,
                     y,
@@ -1339,7 +1318,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
-                const char* customSpawnsLabel = "Custom spawns";
+                const char* const customSpawnsLabel = "Custom spawns";
                 RECT customSpawnsCheckboxLabelRect{
                     customSpawnsCheckboxRect.right + 8,
                     y,
@@ -1696,7 +1675,7 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     y + checkboxSize
                 };
 
-                const char* knifeLabel = "Everyone has knife";
+                const char* const knifeLabel = "Everyone has knife";
                 RECT knifeCheckboxLabelRect{
                     knifeCheckboxRect.right + 8,
                     y,
