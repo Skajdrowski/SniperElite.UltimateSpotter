@@ -50,6 +50,10 @@ struct PlayerFetchEntry
 };
 extern std::unordered_map<std::wstring, PlayerFetchEntry> playerToName;
 
+constexpr uintptr_t GetPingAddr = 0x4529F0;
+using GetPingFn = int(__cdecl*)(uint32_t uID);
+static GetPingFn getPing = reinterpret_cast<GetPingFn>(GetPingAddr);
+
 struct playerCoords
 {
     float x;

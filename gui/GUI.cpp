@@ -888,6 +888,13 @@ void GUI::DrawGuiContent(const RECT& viewport, bool hasCursorPosition, const POI
                     else
                         rowText += (isOnline ? L" [Online]" : L" [Offline]");
 
+                    if (isOnline)
+                    {
+                        const uint32_t pingMs = getPing(entryPtr->uid);
+                        if (pingMs)
+                            rowText += L" Ping: " + std::to_wstring(pingMs) + L"ms";
+                    }
+
                     Render::TextW(Render::Fonts::MenuText,
                         rowRect.left + 6,
                         rowRect.top + 3,
