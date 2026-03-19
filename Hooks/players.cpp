@@ -7,8 +7,8 @@
 #pragma comment(lib, "ws2_32.lib")
 
 std::unordered_map<uint32_t, void*> uIdToPlayer = {};
-std::unordered_map<uint32_t, std::string> uIdToIP = {};
 std::unordered_map<void*, uint32_t> playerTouID = {};
+std::unordered_map<uint32_t, std::string> uIdToIP = {};
 void* __fastcall PlayerConstructor_Detour(void* thisPtr, void* /*unknown register*/, uint32_t uID, int a3, int a4)
 {
     void* playerObject = playerConstructor(thisPtr, uID, a3, a4);
