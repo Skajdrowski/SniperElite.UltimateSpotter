@@ -8,3 +8,5 @@ If you have already installed Widescreen fix mod, you only have to drop .asi fil
 
 ## Usage
 Press INSERT while being in Main Menu, to open up Ultimate Spotter's interface.
+
+<img width="1920" height="1080" alt="Preview" src="https://github.com/user-attachments/assets/33d3c47b-5cd1-4889-b382-5189a41be697" />
