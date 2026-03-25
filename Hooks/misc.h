@@ -23,3 +23,6 @@ void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/);
 extern bool autoBalance;
 
 extern void hookMisc();
+
+using LobbyTemplateCopyFn = int(__thiscall*)(void* thisPtr, void* src);
+static LobbyTemplateCopyFn lobbyTemplateCopy = nullptr;

@@ -21,6 +21,7 @@ constexpr uintptr_t SpawnPointScoreAddr = 0x61D500;
 constexpr uintptr_t SpawnPointInitAddr = 0x591A40;
 constexpr uintptr_t SpawnPointEraseAddr = 0x591D20;
 constexpr uintptr_t SpawnPointEligibleAddr = 0x591700;
+constexpr uintptr_t LobbyTemplateCopyAddr = 0x4B4490;
 
 extern wchar_t iniPath[260];
 extern bool isHost;
