@@ -56,6 +56,7 @@ static void config_init()
 
     autoBalance = GetPrivateProfileIntW(L"LOBBY", L"AutoBalance", false, iniPath);
     antiOOB = GetPrivateProfileIntW(L"LOBBY", L"AntiOOB", true, iniPath);
+    unlockMaps = GetPrivateProfileIntW(L"LOBBY", L"19in1", false, iniPath);
     customSpawns = GetPrivateProfileIntW(L"LOBBY", L"CustomSpawns", false, iniPath);
 
     g_selectedLoadoutPresetIndex = GetPrivateProfileIntW(L"INVENTORIES", L"LoadoutPreset", 0, iniPath);

@@ -174,7 +174,10 @@ static int __fastcall LobbyTemplateCopy_Detour(void* thisPtr, void* edx, void* s
             readLobbyConfig(data);
 
         if (edx == reinterpret_cast<void*>(0x706C60))
+        {
             saveLobbyConfig(data);
+            listMaps();
+        }
     }
 
     return og;
