@@ -40,7 +40,7 @@ uint8_t __fastcall InventoryAssign_Detour(void* thisPtr, void* /*unknown registe
             {
                 weaponId = 0x0;
 
-                std::vector<uint8_t> machineGunsPool;
+                std::vector<uint8_t> machineGunsPool = { PPSH, MP_40, MG42, DP_28 };
                 if (playerTeam == 1)
                     machineGunsPool = { PPSH, MP_40, MG42, DP_28 };
                 if (playerTeam == 2)
