@@ -73,7 +73,6 @@ void __fastcall AutoBalanceUpdate_Detour(void* funcPtr, void* /*edx*/)
 }
 
 constexpr size_t configSize = 0x5F5;
-static std::vector<uint8_t> g_lastSaved = {};
 static std::wstring bytes_to_hex(const uint8_t* data, size_t size)
 {
     static constexpr wchar_t kHex[] = L"0123456789ABCDEF";
@@ -120,23 +119,21 @@ static bool hex_to_bytes(const wchar_t* hex, std::vector<uint8_t>& out, size_t e
     return true;
 }
 
-static const std::wstring ConfigKey = L"gameConfig";
-
+static const wchar_t* const ConfigKey = L"gameConfig";
 static void readLobbyConfig(uint8_t* cfg)
 {
-    if (!cfg || !g_lastSaved.empty())
+    if (!cfg)
         return;
 
     std::vector<wchar_t> buf;
     buf.resize(configSize * 2 + 4);
-    const DWORD read = GetPrivateProfileStringW(L"LOBBY", ConfigKey.c_str(), L"", buf.data(), static_cast<DWORD>(buf.size()), iniPath);
+    const DWORD read = GetPrivateProfileStringW(L"LOBBY", ConfigKey, L"", buf.data(), static_cast<DWORD>(buf.size()), iniPath);
     if (read != 0)
     {
         std::vector<uint8_t> parsed;
         if (hex_to_bytes(buf.data(), parsed, configSize))
         {
             memcpy(cfg, parsed.data(), configSize);
-            g_lastSaved = parsed;
 #ifdef DEBUG_LOGGING
             printf("config loaded\n");
 #endif
@@ -149,17 +146,11 @@ static void saveLobbyConfig(uint8_t* cfg)
     if (!cfg)
         return;
 
-    const uint8_t* cur = cfg;
-
-    if (g_lastSaved.size() != configSize || memcmp(g_lastSaved.data(), cur, configSize) != 0)
-    {
-        const std::wstring hex = bytes_to_hex(cur, configSize);
-        WritePrivateProfileStringW(L"LOBBY", ConfigKey.c_str(), hex.c_str(), iniPath);
-        g_lastSaved.assign(cur, cur + configSize);
+    const std::wstring hex = bytes_to_hex(cfg, configSize);
+    WritePrivateProfileStringW(L"LOBBY", ConfigKey, hex.c_str(), iniPath);
 #ifdef DEBUG_LOGGING
-        printf("config saved\n");
+    printf("config saved\n");
 #endif
-    }
 }
 
 static int __fastcall LobbyTemplateCopy_Detour(void* thisPtr, void* edx, void* src)

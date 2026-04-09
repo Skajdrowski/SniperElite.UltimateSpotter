@@ -4,8 +4,6 @@
 #include "Hooks/inventories.h"
 #include "Hooks/spawns.h"
 
-#include <vadefs.h>
-
 //#define DEBUG_LOGGING
 
 constexpr uintptr_t ChatCooldownAddr = 0x4832D0;
